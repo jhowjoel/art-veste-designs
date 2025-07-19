@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Loader2, Smartphone, CreditCard, Barcode, QrCode, CheckCircle } from "lucide-react";
+import { supabase } from '@/integrations/supabase/client';
 
 const MP_ACCESS_TOKEN = "APP_USR-747523229528627-071912-c8e1710f5dd34feaef164a0f5a074bbb-2459761075";
 
@@ -75,9 +76,39 @@ const Checkout = () => {
   }
 
   // Simular confirmação de pagamento
-  function handleConfirmPayment() {
+  async function handleConfirmPayment() {
     setPaymentSuccess(true);
+    // Buscar o pedido mais recente do usuário com status 'paid'
+    if (!user?.id) {
+      clearCart();
+      return;
+    }
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('payment_status', 'paid')
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (error || !orders || orders.length === 0) {
+      clearCart();
+      return;
+    }
+    const orderId = orders[0].id;
+    // Buscar o primeiro produto do pedido
+    const { data: items } = await supabase
+      .from('order_items')
+      .select('product_id')
+      .eq('order_id', orderId)
+      .limit(1);
+    if (!items || items.length === 0) {
+      clearCart();
+      return;
+    }
+    const productId = items[0].product_id;
     clearCart();
+    // Redireciona para página de obrigado
+    navigate(`/thank-you?orderId=${orderId}&productId=${productId}`);
   }
 
   return (

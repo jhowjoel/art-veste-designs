@@ -14,6 +14,7 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import ThankYou from "./pages/ThankYou";
 import { CartProvider } from "@/hooks/useCart";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,11 @@ const App = () => (
               <Route path="/profile" element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              } />
+              <Route path="/thank-you" element={
+                <ProtectedRoute>
+                  <ThankYou />
                 </ProtectedRoute>
               } />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
