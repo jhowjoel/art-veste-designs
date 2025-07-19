@@ -73,6 +73,19 @@ const Product = () => {
     }
   };
 
+  const handleBuyNow = () => {
+    if (!product) return;
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.png_preview_url || "/placeholder.svg",
+      category: product.categories?.name || "",
+      quantity: 1,
+    });
+    navigate("/checkout");
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-art-bg">
@@ -211,7 +224,7 @@ const Product = () => {
                 </Button>
               </div>
 
-              <Button className="w-full">
+              <Button className="w-full" onClick={handleBuyNow}>
                 <Download className="h-5 w-5 mr-2" />
                 Comprar e Baixar Agora
               </Button>

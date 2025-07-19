@@ -102,7 +102,7 @@ const Checkout = () => {
       .eq('order_id', orderId)
       .limit(1);
     if (!items || items.length === 0) {
-      clearCart();
+        clearCart();
       return;
     }
     const productId = items[0].product_id;
@@ -123,9 +123,9 @@ const Checkout = () => {
             <div className="flex flex-col gap-2 items-center">
               <span className="text-lg font-semibold">Total:</span>
               <span className="text-3xl font-bold text-art-primary">R$ {total.toFixed(2)}</span>
-            </div>
-          </CardHeader>
-          <CardContent>
+                </div>
+              </CardHeader>
+              <CardContent>
             <div className="flex flex-col md:flex-row gap-4 mb-6 justify-center">
               <Button
                 variant={paymentMethod === "pix" ? "default" : "outline"}
@@ -148,15 +148,15 @@ const Checkout = () => {
               >
                 <Barcode className="h-5 w-5" /> Boleto
               </Button>
-            </div>
-
+                  </div>
+                  
             {/* Área dinâmica de pagamento */}
             {paymentSuccess ? (
               <div className="flex flex-col items-center gap-4 py-8">
                 <CheckCircle className="h-16 w-16 text-green-500" />
                 <span className="text-2xl font-bold text-green-600">Pagamento confirmado!</span>
                 <Button onClick={() => navigate("/")}>Voltar para o início</Button>
-              </div>
+                        </div>
             ) : (
               <>
                 {paymentMethod === "pix" && (
@@ -204,10 +204,10 @@ const Checkout = () => {
                     )}
                   </div>
                 )}
-              </>
-            )}
-          </CardContent>
-        </Card>
+                    </>
+                  )}
+              </CardContent>
+            </Card>
       </div>
       <Footer />
     </div>

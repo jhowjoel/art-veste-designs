@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import type { Tables } from "@/integrations/supabase/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Shirt, Coffee, Bed, Square, Circle, ShoppingBag, Image as ImageIcon } from "lucide-react";
+import { useCart } from "@/hooks/useCart";
 
 type Product = Tables<"products"> & {
   categories: Tables<"categories"> | null;
@@ -27,6 +28,7 @@ const Catalog = () => {
   const [showTryOn, setShowTryOn] = useState(false);
   const [tryOnProduct, setTryOnProduct] = useState<any>(null);
   const [selectedTryOnCategory, setSelectedTryOnCategory] = useState<string>("");
+  const { addToCart } = useCart();
 
   const tryOnCategories = [
     { key: "camiseta", label: "Camiseta", icon: <Shirt className="h-5 w-5 mr-2" /> },
@@ -98,6 +100,18 @@ const Catalog = () => {
 
   const handleProductClick = (productId: string) => {
     navigate(`/product/${productId}`);
+  };
+
+  const handleBuyNow = (product: Product) => {
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.png_preview_url || "/placeholder.svg",
+      category: product.categories?.name || "",
+      quantity: 1,
+    });
+    navigate("/checkout");
   };
 
   return (
@@ -220,7 +234,7 @@ const Catalog = () => {
                   <Button
                     size="sm"
                     className="flex-1"
-                    onClick={() => navigate("/checkout")}
+                    onClick={() => handleBuyNow(product)}
                   >
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     Comprar
