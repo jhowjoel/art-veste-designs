@@ -94,16 +94,37 @@ const Product = () => {
   const handlePixPayment = async () => {
     setLoadingPix(true);
     try {
+      console.log("Enviando requisição para criar pagamento Pix:", { productId: product.id, amount: product.price });
+      
       const res = await fetch("/.netlify/functions/create-pix-payment", {
         method: "POST",
-        body: JSON.stringify({ productId: product.id, amount: product.price }),
+        body: JSON.stringify({ 
+          amount: product.price, 
+          description: `Compra: ${product.name}` 
+        }),
         headers: { "Content-Type": "application/json" },
       });
+      
       const data = await res.json();
+      console.log("Resposta da função serverless:", data);
+      
+      if (!res.ok) {
+        throw new Error(data.error || "Erro ao gerar pagamento Pix");
+      }
+      
+      if (!data.pix_code) {
+        throw new Error("Código Pix não foi gerado");
+      }
+      
       setPixCode(data.pix_code);
       setMostrarPix(true);
     } catch (error) {
-      // Trate o erro se necessário
+      console.error("Erro ao gerar pagamento Pix:", error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível gerar o pagamento Pix. Tente novamente.",
+        variant: "destructive",
+      });
     } finally {
       setLoadingPix(false);
     }
