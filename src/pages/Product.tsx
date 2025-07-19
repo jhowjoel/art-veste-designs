@@ -13,6 +13,8 @@ import { ArrowLeft, Download, Heart, ShoppingCart, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 import { useCart } from "@/hooks/useCart";
+// @ts-ignore
+import QRCode from "qrcode.react";
 
 type Product = Database["public"]["Tables"]["products"]["Row"] & {
   categories: Database["public"]["Tables"]["categories"]["Row"] | null;
@@ -24,6 +26,8 @@ const Product = () => {
   const { toast } = useToast();
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const { addToCart } = useCart();
+  const [pixCode, setPixCode] = useState<string | null>(null);
+  const [loadingPix, setLoadingPix] = useState(false);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", id],
@@ -84,6 +88,24 @@ const Product = () => {
       quantity: 1,
     });
     navigate("/checkout");
+  };
+
+  const handlePixPayment = async () => {
+    setLoadingPix(true);
+    try {
+      // Troque a URL abaixo pela sua função serverless real se necessário
+      const res = await fetch("/.netlify/functions/create-pix-payment", {
+        method: "POST",
+        body: JSON.stringify({ productId: product.id, amount: product.price }),
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      setPixCode(data.pix_code); // Supondo que o backend retorna { pix_code: "..." }
+    } catch (error) {
+      // Trate o erro se necessário
+    } finally {
+      setLoadingPix(false);
+    }
   };
 
   if (isLoading) {
@@ -228,6 +250,17 @@ const Product = () => {
                 <Download className="h-5 w-5 mr-2" />
                 Comprar e Baixar Agora
               </Button>
+              <Button className="w-full" onClick={handlePixPayment} disabled={loadingPix}>
+                {loadingPix ? "Gerando QR Code..." : "Pagar com Pix (QR Code)"}
+              </Button>
+              {pixCode && (
+                <div className="flex flex-col items-center my-8">
+                  <h3 className="text-lg font-bold mb-2">Escaneie o QR Code para pagar:</h3>
+                  <QRCode value={pixCode} size={256} />
+                  <p className="mt-4">Ou copie o código Pix:</p>
+                  <pre className="bg-gray-100 p-2 rounded break-all">{pixCode}</pre>
+                </div>
+              )}
             </div>
 
             <Card>
