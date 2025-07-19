@@ -1,4 +1,3 @@
-
 import { Palette, Mail, Instagram, Facebook, Twitter } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";

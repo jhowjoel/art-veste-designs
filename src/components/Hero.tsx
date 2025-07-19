@@ -2,9 +2,25 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Download, Palette } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 export const Hero = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  function handleCreateAccount() {
+    if (user) {
+      toast({
+        title: "Você já possui uma conta ativa!",
+        description: "Para acessar recursos exclusivos, utilize o menu 'Minha Conta'. Caso deseje criar uma nova conta, faça logout primeiro.",
+        variant: "custom-black"
+      });
+      return;
+    }
+    navigate("/auth?tab=signup");
+  }
 
   return (
     <section className="relative py-20 px-4 text-center bg-gradient-to-br from-art-bg to-white">
@@ -38,7 +54,7 @@ export const Hero = () => {
           <Button 
             variant="outline" 
             size="lg"
-            onClick={() => navigate("/auth")}
+            onClick={handleCreateAccount}
             className="text-lg px-8 py-6"
           >
             <Download className="mr-2 h-5 w-5" />

@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Heart, Search, ShoppingCart, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { Tables } from "@/integrations/supabase/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Shirt, Coffee, Bed, Square, Circle, ShoppingBag, Image as ImageIcon } from "lucide-react";
 
 type Product = Tables<"products"> & {
   categories: Tables<"categories"> | null;
@@ -22,6 +24,26 @@ const Catalog = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("recent");
   const navigate = useNavigate();
+  const [showTryOn, setShowTryOn] = useState(false);
+  const [tryOnProduct, setTryOnProduct] = useState<any>(null);
+  const [selectedTryOnCategory, setSelectedTryOnCategory] = useState<string>("");
+
+  const tryOnCategories = [
+    { key: "camiseta", label: "Camiseta", icon: <Shirt className="h-5 w-5 mr-2" /> },
+    { key: "bone", label: "Boné", icon: <Square className="h-5 w-5 mr-2" /> },
+    { key: "calca", label: "Calça", icon: <ShoppingBag className="h-5 w-5 mr-2" /> },
+    { key: "travesseiro", label: "Travesseiro", icon: <Square className="h-5 w-5 mr-2" /> },
+    { key: "coberta", label: "Coberta", icon: <Bed className="h-5 w-5 mr-2" /> },
+    { key: "acessorio_plano", label: "Acessório Plano", icon: <Square className="h-5 w-5 mr-2" /> },
+    { key: "acessorio_curvo", label: "Acessório Curvo", icon: <Circle className="h-5 w-5 mr-2" /> },
+    { key: "caneca", label: "Caneca", icon: <Coffee className="h-5 w-5 mr-2" /> },
+    { key: "garrafa", label: "Garrafa", icon: <Square className="h-5 w-5 mr-2" /> },
+    { key: "mochila", label: "Mochila", icon: <ShoppingBag className="h-5 w-5 mr-2" /> },
+    { key: "ecobag", label: "Ecobag", icon: <ShoppingBag className="h-5 w-5 mr-2" /> },
+    { key: "quadro", label: "Quadro", icon: <ImageIcon className="h-5 w-5 mr-2" /> },
+    { key: "almofada", label: "Almofada", icon: <Square className="h-5 w-5 mr-2" /> },
+    { key: "mousepad", label: "Mousepad", icon: <Square className="h-5 w-5 mr-2" /> },
+  ];
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["products", searchTerm, selectedCategory, sortBy],
@@ -195,7 +217,11 @@ const Catalog = () => {
                     <Eye className="h-4 w-4 mr-2" />
                     Ver
                   </Button>
-                  <Button size="sm" className="flex-1">
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => navigate("/checkout")}
+                  >
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     Comprar
                   </Button>
