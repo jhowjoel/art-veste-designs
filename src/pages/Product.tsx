@@ -28,6 +28,7 @@ const Product = () => {
   const { addToCart } = useCart();
   const [pixCode, setPixCode] = useState<string | null>(null);
   const [loadingPix, setLoadingPix] = useState(false);
+  const [mostrarPix, setMostrarPix] = useState(false);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", id],
@@ -93,14 +94,14 @@ const Product = () => {
   const handlePixPayment = async () => {
     setLoadingPix(true);
     try {
-      // Troque a URL abaixo pela sua função serverless real se necessário
       const res = await fetch("/.netlify/functions/create-pix-payment", {
         method: "POST",
         body: JSON.stringify({ productId: product.id, amount: product.price }),
         headers: { "Content-Type": "application/json" },
       });
       const data = await res.json();
-      setPixCode(data.pix_code); // Supondo que o backend retorna { pix_code: "..." }
+      setPixCode(data.pix_code);
+      setMostrarPix(true);
     } catch (error) {
       // Trate o erro se necessário
     } finally {
@@ -251,13 +252,13 @@ const Product = () => {
                 Comprar e Baixar Agora
               </Button>
               <Button className="w-full" onClick={handlePixPayment} disabled={loadingPix}>
-                {loadingPix ? "Gerando QR Code..." : "Pagar com Pix (QR Code)"}
+                {loadingPix ? "Gerando QR code..." : "Visualizar QR code"}
               </Button>
-              {pixCode && (
+              {mostrarPix && pixCode && (
                 <div className="flex flex-col items-center my-8">
-                  <h3 className="text-lg font-bold mb-2">Escaneie o QR Code para pagar:</h3>
+                  <h3 className="text-lg font-bold mb-2">Escaneie o QR code para pagar:</h3>
                   <QRCode value={pixCode} size={256} />
-                  <p className="mt-4">Ou copie o código Pix:</p>
+                  <p className="mt-4 font-semibold">Pix copia e cola:</p>
                   <pre className="bg-gray-100 p-2 rounded break-all">{pixCode}</pre>
                 </div>
               )}
