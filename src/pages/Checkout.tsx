@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Loader2, Smartphone, CreditCard, Barcode, QrCode, CheckCircle } from "lucide-react";
 
-const MP_PUBLIC_KEY = "SUA_PUBLIC_KEY_AQUI"; // Troque pela sua Public Key do Mercado Pago
+const MP_ACCESS_TOKEN = "APP_USR-747523229528627-071912-c8e1710f5dd34feaef164a0f5a074bbb-2459761075";
 
 const Checkout = () => {
   const { cartItems, clearCart } = useCart();
@@ -26,26 +26,52 @@ const Checkout = () => {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  // Função para criar preferência de pagamento (simulação)
+  // Função para criar pagamento Pix real
   async function handlePayment() {
     setLoading(true);
     setPaymentUrl("");
     setQrCode("");
     setPixKey("");
     setPaymentSuccess(false);
-    // Aqui você faria a chamada real para a API do Mercado Pago
-    // Exemplo de simulação para Pix:
-    setTimeout(() => {
+
+    try {
       if (paymentMethod === "pix") {
-        setQrCode("https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=00020126580014br.gov.bcb.pix0136b3e1...EXEMPLO");
-        setPixKey("00020126580014br.gov.bcb.pix0136b3e1...EXEMPLO");
+        // Montar os itens do carrinho para a preferência
+        const items = cartItems.map(item => ({
+          title: item.name,
+          quantity: item.quantity,
+          unit_price: item.price,
+          currency_id: "BRL"
+        }));
+        // Criar preferência Pix via API Mercado Pago
+        const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${MP_ACCESS_TOKEN}`
+          },
+          body: JSON.stringify({
+            items,
+            payment_methods: { excluded_payment_types: [{ id: "credit_card" }, { id: "ticket" }] },
+            // Você pode adicionar payer, notification_url, etc
+          })
+        });
+        const data = await response.json();
+        // Buscar QR Code Pix
+        if (data && data.init_point) {
+          setPaymentUrl(data.init_point);
+          // Buscar QR Code Pix via API de pagamentos
+          // (Para checkout transparente Pix, normalmente é via endpoint /v1/payments)
+        }
       } else if (paymentMethod === "boleto") {
         setPaymentUrl("https://www.mercadopago.com.br/checkout/boleto-exemplo");
       } else {
         setPaymentUrl("https://www.mercadopago.com.br/checkout/cartao-exemplo");
       }
-      setLoading(false);
-    }, 1500);
+    } catch (err) {
+      alert("Erro ao criar pagamento: " + err);
+    }
+    setLoading(false);
   }
 
   // Simular confirmação de pagamento
@@ -105,17 +131,10 @@ const Checkout = () => {
                 {paymentMethod === "pix" && (
                   <div className="flex flex-col items-center gap-4 py-4">
                     <span className="font-semibold">Pague com Pix</span>
-                    {qrCode ? (
-                      <>
-                        <img src={qrCode} alt="QR Code Pix" className="w-48 h-48 mx-auto rounded shadow" />
-                        <Input
-                          value={pixKey}
-                          readOnly
-                          className="text-center font-mono text-sm bg-gray-100"
-                          onClick={e => (e.target as HTMLInputElement).select()}
-                        />
-                        <Button onClick={handleConfirmPayment} className="w-full mt-2 bg-green-600 hover:bg-green-700">Já paguei</Button>
-                      </>
+                    {paymentUrl ? (
+                      <Button asChild className="w-full bg-blue-600 hover:bg-blue-700">
+                        <a href={paymentUrl} target="_blank" rel="noopener noreferrer">Visualizar QR Code</a>
+                      </Button>
                     ) : (
                       <Button onClick={handlePayment} className="w-full" disabled={loading}>
                         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="h-5 w-5 mr-2" />}
