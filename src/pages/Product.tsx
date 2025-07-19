@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 import { useCart } from "@/hooks/useCart";
 // @ts-ignore
-import QRCode from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 
 type Product = Database["public"]["Tables"]["products"]["Row"] & {
   categories: Database["public"]["Tables"]["categories"]["Row"] | null;
@@ -257,7 +257,7 @@ const Product = () => {
               {mostrarPix && pixCode && (
                 <div className="flex flex-col items-center my-8">
                   <h3 className="text-lg font-bold mb-2">Escaneie o QR code para pagar:</h3>
-                  <QRCode value={pixCode} size={256} />
+                  <QRCodeSVG value={pixCode} size={256} />
                   <p className="mt-4 font-semibold">Pix copia e cola:</p>
                   <pre className="bg-gray-100 p-2 rounded break-all">{pixCode}</pre>
                 </div>
