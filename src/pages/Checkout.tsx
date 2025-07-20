@@ -10,8 +10,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Loader2, Smartphone, CreditCard, Barcode, QrCode, CheckCircle } from "lucide-react";
+import { Loader2, Smartphone, CreditCard, Barcode, QrCode, CheckCircle, Copy, Clock } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const MP_ACCESS_TOKEN = "APP_USR-747523229528627-071912-c8e1710f5dd34feaef164a0f5a074bbb-2459761075";
 
@@ -25,54 +27,42 @@ const Checkout = () => {
   const [qrCode, setQrCode] = useState("");
   const [pixKey, setPixKey] = useState("");
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [showPixModal, setShowPixModal] = useState(false);
+  const [pixData, setPixData] = useState<any>(null);
+  const { toast } = useToast();
   const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  // Função para criar pagamento Pix real
+  // Função para criar pagamento
   async function handlePayment() {
     setLoading(true);
-    setPaymentUrl("");
-    setQrCode("");
-    setPixKey("");
-    setPaymentSuccess(false);
-
+    
     try {
-      if (paymentMethod === "pix") {
-        // Montar os itens do carrinho para a preferência
-        const items = cartItems.map(item => ({
-          title: item.name,
-          quantity: item.quantity,
-          unit_price: item.price,
-          currency_id: "BRL"
-        }));
-        // Criar preferência Pix via API Mercado Pago
-        const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${MP_ACCESS_TOKEN}`
-          },
-          body: JSON.stringify({
-            items,
-            payment_methods: { excluded_payment_types: [{ id: "credit_card" }, { id: "ticket" }] },
-            // Você pode adicionar payer, notification_url, etc
-          })
-        });
-        const data = await response.json();
-        // Buscar QR Code Pix
-        if (data && data.init_point) {
-          setPaymentUrl(data.init_point);
-          // Buscar QR Code Pix via API de pagamentos
-          // (Para checkout transparente Pix, normalmente é via endpoint /v1/payments)
+      const { data, error } = await supabase.functions.invoke('create-pix-payment', {
+        body: {
+          productId: cartItems[0]?.id,
+          amount: total * 100,
+          paymentMethod: paymentMethod === 'card' ? 'credit_card' : paymentMethod
         }
-      } else if (paymentMethod === "boleto") {
-        setPaymentUrl("https://www.mercadopago.com.br/checkout/boleto-exemplo");
+      });
+
+      if (error) throw error;
+
+      if (paymentMethod === 'pix') {
+        setPixData(data.pix);
+        setShowPixModal(true);
       } else {
-        setPaymentUrl("https://www.mercadopago.com.br/checkout/cartao-exemplo");
+        window.open(data.credit_card?.payment_url || data.payment_url, '_blank');
       }
-    } catch (err) {
-      alert("Erro ao criar pagamento: " + err);
+      
+    } catch (error: any) {
+      toast({
+        title: "Erro no pagamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   // Simular confirmação de pagamento
@@ -208,6 +198,66 @@ const Checkout = () => {
                   )}
               </CardContent>
             </Card>
+
+            {/* Modal PIX */}
+            <Dialog open={showPixModal} onOpenChange={setShowPixModal}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <QrCode className="h-5 w-5" />
+                    Pagamento PIX
+                  </DialogTitle>
+                  <DialogDescription>
+                    Escaneie o QR Code ou copie o código PIX abaixo
+                  </DialogDescription>
+                </DialogHeader>
+                
+                {pixData && (
+                  <div className="space-y-4">
+                    {/* QR Code */}
+                    <div className="flex justify-center p-4 bg-white rounded-lg">
+                      <div className="w-48 h-48 bg-gray-200 flex items-center justify-center rounded-lg">
+                        <QrCode className="h-20 w-20 text-gray-400" />
+                      </div>
+                    </div>
+                    
+                    {/* Código PIX */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Código PIX:</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={pixData.qr_code}
+                          readOnly
+                          className="flex-1 p-2 border rounded text-sm"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(pixData.qr_code);
+                            toast({ title: "Código copiado!" });
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Tempo restante */}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      Expira em: 60 minutos
+                    </div>
+                    
+                    <div className="text-center">
+                      <Button onClick={handleConfirmPayment} className="w-full">
+                        Já realizei o pagamento
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
       </div>
       <Footer />
     </div>
