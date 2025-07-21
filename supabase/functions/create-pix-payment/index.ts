@@ -120,7 +120,8 @@ serve(async (req) => {
     } else {
       // Credit card payment
       const creditCardData = {
-        ...paymentData,
+        order_id: order.id,
+        status: "pending",
         credit_card: {
           payment_url: `https://mercadopago.com.br/checkout/v1/redirect?preference-id=MP_${order.id}`,
           installments: [
