@@ -12,7 +12,8 @@ import {
   Shirt, 
   Baby, 
   Sparkles, 
-  Crown 
+  Crown,
+  Triangle
 } from "lucide-react";
 
 const iconMap: { [key: string]: any } = {
@@ -24,6 +25,7 @@ const iconMap: { [key: string]: any } = {
   'Baby': Baby,
   'Sparkles': Sparkles,
   'Crown': Crown,
+  'Triangle': Triangle,
 };
 
 export const Categories = () => {
@@ -35,6 +37,7 @@ export const Categories = () => {
       const { data, error } = await supabase
         .from("categories")
         .select("*")
+        .is("parent_id", null) // Só mostrar categorias principais
         .order("name");
       if (error) throw error;
       return data;
@@ -76,7 +79,13 @@ export const Categories = () => {
               <Card 
                 key={category.id} 
                 className="hover:shadow-lg transition-shadow cursor-pointer group"
-                onClick={() => navigate(`/catalog?category=${category.id}`)}
+                onClick={() => {
+                  if (category.name === 'Vetor') {
+                    navigate('/vector-subcategories');
+                  } else {
+                    navigate(`/catalog?category=${category.id}`);
+                  }
+                }}
               >
                 <CardContent className="p-6 text-center">
                   <IconComponent className="w-12 h-12 text-art-primary mx-auto mb-4 group-hover:scale-110 transition-transform" />

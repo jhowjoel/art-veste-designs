@@ -15,6 +15,7 @@ import Checkout from "./pages/Checkout";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import ThankYou from "./pages/ThankYou";
+import VectorSubcategories from "./pages/VectorSubcategories";
 import { CartProvider } from "@/hooks/useCart";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/catalog" element={<Catalog />} />
+              <Route path="/vector-subcategories" element={<VectorSubcategories />} />
               <Route path="/product/:id" element={<Product />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={
