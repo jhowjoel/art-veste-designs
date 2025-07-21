@@ -98,28 +98,23 @@ const Product = () => {
     try {
       console.log("Enviando requisição para criar pagamento Pix:", { productId: product.id, amount: product.price });
       
-      const res = await fetch("/.netlify/functions/create-pix-payment", {
-        method: "POST",
-        body: JSON.stringify({ 
-          amount: product.price, 
-          description: `Compra: ${product.name}` 
-        }),
-        headers: { "Content-Type": "application/json" },
+      const { data, error } = await supabase.functions.invoke('create-pix-payment', {
+        body: {
+          productId: product.id,
+          amount: product.price * 100, // Convertendo para centavos
+          paymentMethod: 'pix'
+        }
       });
-      
-      const data = await res.json();
+
+      if (error) throw error;
       console.log("Resposta da função serverless:", data);
       
-      if (!res.ok) {
-        throw new Error(data.error || "Erro ao gerar pagamento Pix");
+      if (!data || !data.pix) {
+        throw new Error("Dados do PIX não foram retornados");
       }
       
-      if (!data.pix_code) {
-        throw new Error("Código Pix não foi gerado");
-      }
-      
-      setPixCode(data.pix_code);
-      setPaymentId(data.payment_id); // Salva o payment_id para verificação posterior
+      setPixCode(data.pix.qr_code);
+      setPaymentId(data.payment_id);
       setMostrarPix(true);
     } catch (error) {
       console.error("Erro ao gerar pagamento Pix:", error);
@@ -144,12 +139,12 @@ const Product = () => {
     }
     setVerificandoPagamento(true);
     try {
-      const res = await fetch('/.netlify/functions/check-pix-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payment_id: paymentId }),
+      const { data, error } = await supabase.functions.invoke('check-payment-status', {
+        body: { payment_id: paymentId }
       });
-      const data = await res.json();
+
+      if (error) throw error;
+
       if (data.status === 'approved') {
         toast({
           title: "Pagamento realizado!",
@@ -163,10 +158,10 @@ const Product = () => {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Erro",
-        description: "Erro ao verificar pagamento. Tente novamente.",
+        description: error.message || "Erro ao verificar pagamento. Tente novamente.",
         variant: "destructive",
       });
     } finally {
