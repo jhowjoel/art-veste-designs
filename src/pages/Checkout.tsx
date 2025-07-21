@@ -14,6 +14,7 @@ import { Loader2, Smartphone, CreditCard, Barcode, QrCode, CheckCircle, Copy, Cl
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { QRCodeSVG } from 'qrcode.react';
 
 const MP_ACCESS_TOKEN = "APP_USR-747523229528627-071912-c8e1710f5dd34feaef164a0f5a074bbb-2459761075";
 
@@ -29,8 +30,80 @@ const Checkout = () => {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [showPixModal, setShowPixModal] = useState(false);
   const [pixData, setPixData] = useState<any>(null);
+  const [timeLeft, setTimeLeft] = useState(1800); // 30 minutos em segundos
+  const [paymentId, setPaymentId] = useState("");
+  const [checkingPayment, setCheckingPayment] = useState(false);
   const { toast } = useToast();
   const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+  // Cronômetro para o PIX e verificação automática de pagamento
+  useEffect(() => {
+    if (showPixModal && timeLeft > 0 && paymentId) {
+      const timer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            setShowPixModal(false);
+            toast({
+              title: "PIX expirado",
+              description: "O tempo para pagamento PIX expirou. Gere um novo código.",
+              variant: "destructive",
+            });
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // Verificar status do pagamento a cada 5 segundos
+      const checkPayment = setInterval(async () => {
+        if (!checkingPayment) {
+          await checkPaymentStatus();
+        }
+      }, 5000);
+
+      return () => {
+        clearInterval(timer);
+        clearInterval(checkPayment);
+      };
+    }
+  }, [showPixModal, timeLeft, paymentId, checkingPayment, toast]);
+
+  // Formatar tempo para exibição
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  // Função para verificar status do pagamento
+  async function checkPaymentStatus() {
+    if (!paymentId) return;
+    
+    setCheckingPayment(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('check-payment-status', {
+        body: { payment_id: paymentId }
+      });
+
+      if (error) throw error;
+
+      if (data.status === 'approved') {
+        setShowPixModal(false);
+        setPaymentSuccess(true);
+        toast({
+          title: "Pagamento aprovado!",
+          description: "Seu pagamento foi confirmado. Iniciando download...",
+        });
+        setTimeout(() => {
+          handleConfirmPayment();
+        }, 2000);
+      }
+    } catch (error: any) {
+      console.error("Erro ao verificar pagamento:", error);
+    } finally {
+      setCheckingPayment(false);
+    }
+  }
 
   // Função para criar pagamento
   async function handlePayment() {
@@ -49,6 +122,8 @@ const Checkout = () => {
 
       if (paymentMethod === 'pix') {
         setPixData(data.pix);
+        setPaymentId(data.payment_id);
+        setTimeLeft(1800); // Reset timer para 30 minutos
         setShowPixModal(true);
       } else {
         window.open(data.credit_card?.payment_url || data.payment_url, '_blank');
@@ -145,8 +220,16 @@ const Checkout = () => {
               <div className="flex flex-col items-center gap-4 py-8">
                 <CheckCircle className="h-16 w-16 text-green-500" />
                 <span className="text-2xl font-bold text-green-600">Pagamento confirmado!</span>
-                <Button onClick={() => navigate("/")}>Voltar para o início</Button>
-                        </div>
+                <p className="text-center text-muted-foreground mb-4">
+                  Seu pagamento foi aprovado com sucesso!
+                </p>
+                <Button 
+                  onClick={handleConfirmPayment}
+                  className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg"
+                >
+                  Clique aqui para começar o Download
+                </Button>
+              </div>
             ) : (
               <>
                 {paymentMethod === "pix" && (
@@ -214,12 +297,17 @@ const Checkout = () => {
                 
                 {pixData && (
                   <div className="space-y-4">
-                    {/* QR Code */}
-                    <div className="flex justify-center p-4 bg-white rounded-lg">
-                      <div className="w-48 h-48 bg-gray-200 flex items-center justify-center rounded-lg">
-                        <QrCode className="h-20 w-20 text-gray-400" />
-                      </div>
-                    </div>
+                     {/* QR Code */}
+                     <div className="flex justify-center p-4 bg-white rounded-lg">
+                       <QRCodeSVG 
+                         value={pixData.qr_code}
+                         size={192}
+                         bgColor="#ffffff"
+                         fgColor="#000000"
+                         level="M"
+                         includeMargin
+                       />
+                     </div>
                     
                     {/* Código PIX */}
                     <div className="space-y-2">
@@ -243,16 +331,22 @@ const Checkout = () => {
                       </div>
                     </div>
                     
-                    {/* Tempo restante */}
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      Expira em: 60 minutos
-                    </div>
+                      {/* Tempo restante e status */}
+                     <div className="space-y-2">
+                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                         <Clock className="h-4 w-4" />
+                         Expira em: {formatTime(timeLeft)}
+                       </div>
+                       {checkingPayment && (
+                         <div className="flex items-center gap-2 text-sm text-blue-600">
+                           <Loader2 className="h-4 w-4 animate-spin" />
+                           Verificando pagamento...
+                         </div>
+                       )}
+                     </div>
                     
-                    <div className="text-center">
-                      <Button onClick={handleConfirmPayment} className="w-full">
-                        Já realizei o pagamento
-                      </Button>
+                    <div className="text-center text-sm text-muted-foreground">
+                      Após realizar o pagamento, o download será liberado automaticamente.
                     </div>
                   </div>
                 )}

@@ -64,24 +64,52 @@ serve(async (req) => {
         price: amount
       });
 
-    // Simulate Mercado Pago payment creation
-    const paymentData = {
-      id: `MP_${Date.now()}`,
-      status: "pending",
-      amount: amount,
-      currency: "BRL",
-      payment_method: paymentMethod,
-      created_at: new Date().toISOString()
-    };
-
+    // Create PIX payment using real Mercado Pago API
     if (paymentMethod === 'pix') {
-      // Generate PIX payment data
+      const mercadoPagoToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+      if (!mercadoPagoToken) {
+        throw new Error("Token do Mercado Pago não configurado");
+      }
+
+      const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${mercadoPagoToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          transaction_amount: amount / 100,
+          description: `Compra EstampArt - Pedido ${order.id}`,
+          payment_method_id: "pix",
+          external_reference: order.id
+        })
+      });
+
+      if (!mpResponse.ok) {
+        const error = await mpResponse.json();
+        throw new Error(`Erro Mercado Pago: ${JSON.stringify(error)}`);
+      }
+
+      const mpData = await mpResponse.json();
+      
+      // Update order with payment ID
+      await supabaseService
+        .from("orders")
+        .update({ 
+          payment_id: mpData.id,
+          payment_status: mpData.status 
+        })
+        .eq("id", order.id);
+
       const pixData = {
-        ...paymentData,
+        order_id: order.id,
+        payment_id: mpData.id,
+        status: mpData.status,
         pix: {
-          qr_code: "00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-426614174000520400005303986540510.005802BR5925LOJA EXEMPLO6008BRASILIA62070503***6304",
-          qr_code_base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
-          expires_in: 3600
+          qr_code: mpData.point_of_interaction.transaction_data.qr_code,
+          qr_code_base64: mpData.point_of_interaction.transaction_data.qr_code_base64,
+          expires_in: 1800, // 30 minutos
+          payment_id: mpData.id
         }
       };
       
