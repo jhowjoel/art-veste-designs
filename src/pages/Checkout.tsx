@@ -14,6 +14,7 @@ import { Loader2, Smartphone, CreditCard, Barcode, QrCode, CheckCircle, Copy, Cl
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { QRCodeSVG } from 'qrcode.react';
 
 const MP_ACCESS_TOKEN = "APP_USR-747523229528627-071912-c8e1710f5dd34feaef164a0f5a074bbb-2459761075";
 
@@ -29,8 +30,38 @@ const Checkout = () => {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [showPixModal, setShowPixModal] = useState(false);
   const [pixData, setPixData] = useState<any>(null);
+  const [timeLeft, setTimeLeft] = useState(3600); // 60 minutos em segundos
   const { toast } = useToast();
   const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+  // Cronômetro para o PIX
+  useEffect(() => {
+    if (showPixModal && timeLeft > 0) {
+      const timer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            setShowPixModal(false);
+            toast({
+              title: "PIX expirado",
+              description: "O tempo para pagamento PIX expirou. Gere um novo código.",
+              variant: "destructive",
+            });
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [showPixModal, timeLeft, toast]);
+
+  // Formatar tempo para exibição
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
 
   // Função para criar pagamento
   async function handlePayment() {
@@ -49,6 +80,7 @@ const Checkout = () => {
 
       if (paymentMethod === 'pix') {
         setPixData(data.pix);
+        setTimeLeft(3600); // Reset timer para 60 minutos
         setShowPixModal(true);
       } else {
         window.open(data.credit_card?.payment_url || data.payment_url, '_blank');
@@ -214,12 +246,17 @@ const Checkout = () => {
                 
                 {pixData && (
                   <div className="space-y-4">
-                    {/* QR Code */}
-                    <div className="flex justify-center p-4 bg-white rounded-lg">
-                      <div className="w-48 h-48 bg-gray-200 flex items-center justify-center rounded-lg">
-                        <QrCode className="h-20 w-20 text-gray-400" />
-                      </div>
-                    </div>
+                     {/* QR Code */}
+                     <div className="flex justify-center p-4 bg-white rounded-lg">
+                       <QRCodeSVG 
+                         value={pixData.qr_code}
+                         size={192}
+                         bgColor="#ffffff"
+                         fgColor="#000000"
+                         level="M"
+                         includeMargin
+                       />
+                     </div>
                     
                     {/* Código PIX */}
                     <div className="space-y-2">
@@ -243,11 +280,11 @@ const Checkout = () => {
                       </div>
                     </div>
                     
-                    {/* Tempo restante */}
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      Expira em: 60 minutos
-                    </div>
+                     {/* Tempo restante */}
+                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                       <Clock className="h-4 w-4" />
+                       Expira em: {formatTime(timeLeft)}
+                     </div>
                     
                     <div className="text-center">
                       <Button onClick={handleConfirmPayment} className="w-full">
