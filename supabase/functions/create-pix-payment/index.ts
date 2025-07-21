@@ -18,16 +18,28 @@ serve(async (req) => {
   }
 
   try {
+    console.log("1. Iniciando função create-pix-payment");
+    
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
     );
 
+    console.log("2. Cliente Supabase criado");
+
     // Get authenticated user
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    console.log("3. Auth header:", authHeader ? "presente" : "ausente");
+    
+    if (!authHeader) {
+      throw new Error("Header de autorização não encontrado");
+    }
+    
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
+
+    console.log("4. Usuário autenticado:", user?.email || "não encontrado");
 
     if (!user?.email) {
       throw new Error("Usuário não autenticado");
