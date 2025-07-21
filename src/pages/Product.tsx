@@ -29,6 +29,8 @@ const Product = () => {
   const [pixCode, setPixCode] = useState<string | null>(null);
   const [loadingPix, setLoadingPix] = useState(false);
   const [mostrarPix, setMostrarPix] = useState(false);
+  const [verificandoPagamento, setVerificandoPagamento] = useState(false);
+  const [paymentId, setPaymentId] = useState<string | null>(null);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", id],
@@ -117,6 +119,7 @@ const Product = () => {
       }
       
       setPixCode(data.pix_code);
+      setPaymentId(data.payment_id); // Salva o payment_id para verificação posterior
       setMostrarPix(true);
     } catch (error) {
       console.error("Erro ao gerar pagamento Pix:", error);
@@ -129,6 +132,47 @@ const Product = () => {
       setLoadingPix(false);
     }
   };
+
+  async function handleVerificarPagamento() {
+    if (!paymentId) {
+      toast({
+        title: "Erro",
+        description: "ID do pagamento não encontrado.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setVerificandoPagamento(true);
+    try {
+      const res = await fetch('/.netlify/functions/check-pix-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_id: paymentId }),
+      });
+      const data = await res.json();
+      if (data.status === 'approved') {
+        toast({
+          title: "Pagamento realizado!",
+          description: "Seu pagamento foi confirmado com sucesso.",
+        });
+        // Aqui você pode liberar o download ou redirecionar o usuário
+      } else {
+        toast({
+          title: "Pagamento não encontrado",
+          description: "Ainda não identificamos o pagamento. Aguarde alguns segundos e tente novamente.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao verificar pagamento. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setVerificandoPagamento(false);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -281,6 +325,9 @@ const Product = () => {
                   <QRCodeSVG value={pixCode} size={256} />
                   <p className="mt-4 font-semibold">Pix copia e cola:</p>
                   <pre className="bg-gray-100 p-2 rounded break-all">{pixCode}</pre>
+                  <Button className="mt-4" onClick={handleVerificarPagamento} disabled={verificandoPagamento}>
+                    {verificandoPagamento ? "Verificando..." : "Já realizei o pagamento"}
+                  </Button>
                 </div>
               )}
             </div>
