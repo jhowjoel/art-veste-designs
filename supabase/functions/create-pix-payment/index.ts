@@ -83,11 +83,14 @@ serve(async (req) => {
         throw new Error("Token do Mercado Pago não configurado");
       }
 
+      const idempotencyKey = `${order.id}-${Date.now()}`;
+      
       const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${mercadoPagoToken}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": idempotencyKey
         },
         body: JSON.stringify({
           transaction_amount: amount / 100,
