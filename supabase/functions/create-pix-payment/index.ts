@@ -93,7 +93,12 @@ serve(async (req) => {
           transaction_amount: amount / 100,
           description: `Compra EstampArt - Pedido ${order.id}`,
           payment_method_id: "pix",
-          external_reference: order.id
+          external_reference: order.id,
+          payer: {
+            email: user.email,
+            first_name: user.user_metadata?.full_name?.split(' ')[0] || "Cliente",
+            last_name: user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || "EstampArt"
+          }
         })
       });
 
