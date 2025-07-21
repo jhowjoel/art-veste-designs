@@ -64,7 +64,7 @@ export const Categories = () => {
   }
 
   return (
-    <section className="py-16 px-4 bg-white">
+    <section id="categorias" className="py-16 px-4 bg-white">
       <div className="container mx-auto">
         <h2 className="text-3xl font-bold text-center mb-12 font-heading">
           Explore por Categoria
@@ -92,7 +92,7 @@ export const Categories = () => {
           })}
         </div>
         <div className="text-center">
-          <Button 
+          <Button
             onClick={() => navigate("/catalog")}
             variant="outline"
             size="lg"

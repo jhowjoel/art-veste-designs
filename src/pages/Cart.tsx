@@ -11,11 +11,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/useCart";
 
 const Cart = () => {
-  const { cartItems, updateQuantity, removeFromCart } = useCart();
+  const { cartItems, updateQuantity, removeFromCart, subtotal, discount, total } = useCart();
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   const handleCheckout = () => {
     navigate("/checkout");
@@ -78,6 +76,7 @@ const Cart = () => {
                       <Button
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
                         disabled={item.quantity === 1}
+                        variant="outline"
                       >
                         <Minus className="h-4 w-4" />
                       </Button>
@@ -86,6 +85,7 @@ const Cart = () => {
                       </span>
                       <Button
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        variant="outline"
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
@@ -93,9 +93,11 @@ const Cart = () => {
 
                     <Button
                       onClick={() => removeFromCart(item.id)}
+                      variant="ghost"
+                      size="icon"
                       className="text-destructive hover:text-destructive"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-5 w-5" />
                     </Button>
                   </div>
                 </CardContent>
@@ -110,13 +112,17 @@ const Cart = () => {
                 <CardTitle>Resumo do Pedido</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="flex justify-between text-sm">
-                      <span>{item.name} x{item.quantity}</span>
-                      <span>R$ {(item.price * item.quantity).toFixed(2)}</span>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>R$ {subtotal.toFixed(2)}</span>
+                  </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Desconto (20%)</span>
+                      <span>-R$ {discount.toFixed(2)}</span>
                     </div>
-                  ))}
+                  )}
                 </div>
                 
                 <Separator />

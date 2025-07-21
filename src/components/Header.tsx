@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/hooks/useCart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -26,6 +27,8 @@ import { supabase } from "@/integrations/supabase/client";
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user } = useAuth();
+  const { cartItems } = useCart();
+  const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -78,12 +81,14 @@ export const Header = () => {
               className="relative"
             >
               <ShoppingCart className="h-5 w-5" />
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-              >
-                2
-              </Badge>
+              {itemCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                >
+                  {itemCount}
+                </Badge>
+              )}
             </Button>
 
             {/* User Menu */}

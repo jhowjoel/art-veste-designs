@@ -21,6 +21,9 @@ type Product = Tables<"products"> & {
 };
 
 const Catalog = () => {
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("recent");
@@ -100,18 +103,6 @@ const Catalog = () => {
 
   const handleProductClick = (productId: string) => {
     navigate(`/product/${productId}`);
-  };
-
-  const handleBuyNow = (product: Product) => {
-    addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.png_preview_url || "/placeholder.svg",
-      category: product.categories?.name || "",
-      quantity: 1,
-    });
-    navigate("/checkout");
   };
 
   return (
@@ -234,10 +225,17 @@ const Catalog = () => {
                   <Button
                     size="sm"
                     className="flex-1"
-                    onClick={() => handleBuyNow(product)}
+                    onClick={() => addToCart({
+                      id: product.id,
+                      name: product.name,
+                      price: product.price,
+                      image: product.png_preview_url || '',
+                      category: product.categories?.name || '',
+                      quantity: 1
+                    })}
                   >
                     <ShoppingCart className="h-4 w-4 mr-2" />
-                    Comprar
+                    Adicionar
                   </Button>
                 </CardFooter>
               </Card>

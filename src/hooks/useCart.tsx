@@ -15,6 +15,9 @@ interface CartContextType {
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
+  subtotal: number;
+  discount: number;
+  total: number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -66,8 +69,14 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
   const clearCart = () => setCartItems([]);
 
+  // NOVA LÓGICA DE DESCONTO
+  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const discount = itemCount >= 3 ? subtotal * 0.20 : 0; // 20% de desconto
+  const total = subtotal - discount;
+
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart }}>
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, subtotal, discount, total }}>
       {children}
     </CartContext.Provider>
   );

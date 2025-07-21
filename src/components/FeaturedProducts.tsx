@@ -6,6 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { Eye, ShoppingCart, Star } from "lucide-react";
+import { useCart } from "@/hooks/useCart";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Product = Tables<"products"> & {
@@ -33,6 +34,8 @@ export const FeaturedProducts = () => {
       return data as Product[];
     },
   });
+
+  const { addToCart } = useCart();
 
   if (isLoading) {
     return (
@@ -108,9 +111,20 @@ export const FeaturedProducts = () => {
                   <Eye className="h-4 w-4 mr-2" />
                   Ver
                 </Button>
-                <Button size="sm" className="flex-1">
+                <Button 
+                  size="sm" 
+                  className="flex-1"
+                  onClick={() => addToCart({
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    image: product.png_preview_url || '',
+                    category: product.categories?.name || '',
+                    quantity: 1
+                  })}
+                >
                   <ShoppingCart className="h-4 w-4 mr-2" />
-                  Comprar
+                  Adicionar
                 </Button>
               </CardFooter>
             </Card>
