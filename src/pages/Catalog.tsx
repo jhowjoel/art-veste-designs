@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Heart, Search, ShoppingCart, Eye } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import type { Tables } from "@/integrations/supabase/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Shirt, Coffee, Bed, Square, Circle, ShoppingBag, Image as ImageIcon } from "lucide-react";
@@ -21,13 +21,24 @@ type Product = Tables<"products"> & {
 };
 
 const Catalog = () => {
+  const [searchParams] = useSearchParams();
+  
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("recent");
   const navigate = useNavigate();
+
+  // Read category from URL parameters
+  useEffect(() => {
+    const categoryFromUrl = searchParams.get("category");
+    if (categoryFromUrl) {
+      setSelectedCategory(categoryFromUrl);
+    }
+  }, [searchParams]);
   const [showTryOn, setShowTryOn] = useState(false);
   const [tryOnProduct, setTryOnProduct] = useState<any>(null);
   const [selectedTryOnCategory, setSelectedTryOnCategory] = useState<string>("");
