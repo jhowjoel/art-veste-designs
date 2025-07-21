@@ -30,13 +30,15 @@ const Checkout = () => {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [showPixModal, setShowPixModal] = useState(false);
   const [pixData, setPixData] = useState<any>(null);
-  const [timeLeft, setTimeLeft] = useState(3600); // 60 minutos em segundos
+  const [timeLeft, setTimeLeft] = useState(1800); // 30 minutos em segundos
+  const [paymentId, setPaymentId] = useState("");
+  const [checkingPayment, setCheckingPayment] = useState(false);
   const { toast } = useToast();
   const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  // Cronômetro para o PIX
+  // Cronômetro para o PIX e verificação automática de pagamento
   useEffect(() => {
-    if (showPixModal && timeLeft > 0) {
+    if (showPixModal && timeLeft > 0 && paymentId) {
       const timer = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
@@ -52,9 +54,19 @@ const Checkout = () => {
         });
       }, 1000);
 
-      return () => clearInterval(timer);
+      // Verificar status do pagamento a cada 5 segundos
+      const checkPayment = setInterval(async () => {
+        if (!checkingPayment) {
+          await checkPaymentStatus();
+        }
+      }, 5000);
+
+      return () => {
+        clearInterval(timer);
+        clearInterval(checkPayment);
+      };
     }
-  }, [showPixModal, timeLeft, toast]);
+  }, [showPixModal, timeLeft, paymentId, checkingPayment, toast]);
 
   // Formatar tempo para exibição
   const formatTime = (seconds: number) => {
@@ -62,6 +74,36 @@ const Checkout = () => {
     const remainingSeconds = seconds % 60;
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
+
+  // Função para verificar status do pagamento
+  async function checkPaymentStatus() {
+    if (!paymentId) return;
+    
+    setCheckingPayment(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('check-payment-status', {
+        body: { payment_id: paymentId }
+      });
+
+      if (error) throw error;
+
+      if (data.status === 'approved') {
+        setShowPixModal(false);
+        setPaymentSuccess(true);
+        toast({
+          title: "Pagamento aprovado!",
+          description: "Seu pagamento foi confirmado. Iniciando download...",
+        });
+        setTimeout(() => {
+          handleConfirmPayment();
+        }, 2000);
+      }
+    } catch (error: any) {
+      console.error("Erro ao verificar pagamento:", error);
+    } finally {
+      setCheckingPayment(false);
+    }
+  }
 
   // Função para criar pagamento
   async function handlePayment() {
@@ -80,7 +122,8 @@ const Checkout = () => {
 
       if (paymentMethod === 'pix') {
         setPixData(data.pix);
-        setTimeLeft(3600); // Reset timer para 60 minutos
+        setPaymentId(data.payment_id);
+        setTimeLeft(1800); // Reset timer para 30 minutos
         setShowPixModal(true);
       } else {
         window.open(data.credit_card?.payment_url || data.payment_url, '_blank');
@@ -177,8 +220,16 @@ const Checkout = () => {
               <div className="flex flex-col items-center gap-4 py-8">
                 <CheckCircle className="h-16 w-16 text-green-500" />
                 <span className="text-2xl font-bold text-green-600">Pagamento confirmado!</span>
-                <Button onClick={() => navigate("/")}>Voltar para o início</Button>
-                        </div>
+                <p className="text-center text-muted-foreground mb-4">
+                  Seu pagamento foi aprovado com sucesso!
+                </p>
+                <Button 
+                  onClick={handleConfirmPayment}
+                  className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg"
+                >
+                  Clique aqui para começar o Download
+                </Button>
+              </div>
             ) : (
               <>
                 {paymentMethod === "pix" && (
@@ -280,16 +331,22 @@ const Checkout = () => {
                       </div>
                     </div>
                     
-                     {/* Tempo restante */}
-                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                       <Clock className="h-4 w-4" />
-                       Expira em: {formatTime(timeLeft)}
+                      {/* Tempo restante e status */}
+                     <div className="space-y-2">
+                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                         <Clock className="h-4 w-4" />
+                         Expira em: {formatTime(timeLeft)}
+                       </div>
+                       {checkingPayment && (
+                         <div className="flex items-center gap-2 text-sm text-blue-600">
+                           <Loader2 className="h-4 w-4 animate-spin" />
+                           Verificando pagamento...
+                         </div>
+                       )}
                      </div>
                     
-                    <div className="text-center">
-                      <Button onClick={handleConfirmPayment} className="w-full">
-                        Já realizei o pagamento
-                      </Button>
+                    <div className="text-center text-sm text-muted-foreground">
+                      Após realizar o pagamento, o download será liberado automaticamente.
                     </div>
                   </div>
                 )}

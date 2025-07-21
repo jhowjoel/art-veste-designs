@@ -64,55 +64,52 @@ serve(async (req) => {
         price: amount
       });
 
-    // Simulate Mercado Pago payment creation
-    const paymentData = {
-      id: `MP_${Date.now()}`,
-      status: "pending",
-      amount: amount,
-      currency: "BRL",
-      payment_method: paymentMethod,
-      created_at: new Date().toISOString()
-    };
-
+    // Create PIX payment using real Mercado Pago API
     if (paymentMethod === 'pix') {
-      // Generate real PIX payment data
-      const pixKey = "pix@estampart.shop";
-      const merchantName = "ESTAMPART SHOP";
-      const merchantCity = "SAO PAULO";
-      const amountBRL = (amount / 100).toFixed(2);
+      const mercadoPagoToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+      if (!mercadoPagoToken) {
+        throw new Error("Token do Mercado Pago não configurado");
+      }
+
+      const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${mercadoPagoToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          transaction_amount: amount / 100,
+          description: `Compra EstampArt - Pedido ${order.id}`,
+          payment_method_id: "pix",
+          external_reference: order.id
+        })
+      });
+
+      if (!mpResponse.ok) {
+        const error = await mpResponse.json();
+        throw new Error(`Erro Mercado Pago: ${JSON.stringify(error)}`);
+      }
+
+      const mpData = await mpResponse.json();
       
-      // Generate a real PIX code following BR Code standard
-      const generatePixCode = (pixKey: string, amount: string, merchantName: string, merchantCity: string) => {
-        const formatField = (id: string, value: string) => {
-          const length = value.length.toString().padStart(2, '0');
-          return id + length + value;
-        };
-        
-        const payload = 
-          "000201" + // Payload Format Indicator
-          "010212" + // Point of Initiation Method (12 = QR Code dinâmico)
-          formatField("26", formatField("00", "br.gov.bcb.pix") + formatField("01", pixKey)) +
-          "520400005303986" + // Merchant Category Code + Currency (986 = BRL)
-          formatField("54", amount) +
-          "5802BR" + // Country Code
-          formatField("59", merchantName) +
-          formatField("60", merchantCity) +
-          formatField("62", formatField("05", order.id)) + // Additional Data (order ID)
-          "6304"; // CRC16 placeholder
-        
-        // Simple CRC16 calculation (for demo - real implementation needs proper CRC16)
-        const crc = "1234";
-        return payload + crc;
-      };
-      
-      const pixCode = generatePixCode(pixKey, amountBRL, merchantName, merchantCity);
-      
+      // Update order with payment ID
+      await supabaseService
+        .from("orders")
+        .update({ 
+          payment_id: mpData.id,
+          payment_status: mpData.status 
+        })
+        .eq("id", order.id);
+
       const pixData = {
-        ...paymentData,
+        order_id: order.id,
+        payment_id: mpData.id,
+        status: mpData.status,
         pix: {
-          qr_code: pixCode,
-          expires_in: 3600,
-          payment_id: paymentData.id
+          qr_code: mpData.point_of_interaction.transaction_data.qr_code,
+          qr_code_base64: mpData.point_of_interaction.transaction_data.qr_code_base64,
+          expires_in: 1800, // 30 minutos
+          payment_id: mpData.id
         }
       };
       
