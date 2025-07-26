@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Download, User, ShoppingBag, Settings, LogOut } from "lucide-react";
+import { Download, User, ShoppingBag, Settings, LogOut, Wrench } from "lucide-react";
+import { ImageEditor } from "@/components/ImageEditor";
 import { useToast } from "@/hooks/use-toast";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import type { Tables } from "@/integrations/supabase/types";
@@ -164,7 +165,7 @@ const Profile = () => {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="profile">
               <User className="h-4 w-4 mr-2" />
               Perfil
@@ -176,6 +177,10 @@ const Profile = () => {
             <TabsTrigger value="orders">
               <ShoppingBag className="h-4 w-4 mr-2" />
               Pedidos
+            </TabsTrigger>
+            <TabsTrigger value="tools">
+              <Wrench className="h-4 w-4 mr-2" />
+              Ferramentas
             </TabsTrigger>
             <TabsTrigger value="settings">
               <Settings className="h-4 w-4 mr-2" />
@@ -332,6 +337,20 @@ const Profile = () => {
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="tools">
+            <Card className="h-[80vh]">
+              <CardHeader>
+                <CardTitle>Editor de Imagens</CardTitle>
+                <CardDescription>
+                  Transforme imagens em vetores, remova fundos e edite suas imagens
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="h-full p-0">
+                <ImageEditor className="h-full" />
               </CardContent>
             </Card>
           </TabsContent>
