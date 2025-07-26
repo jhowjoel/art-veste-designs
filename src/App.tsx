@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -29,9 +30,10 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AuthProvider>
-        <SubscriptionProvider>
-          <CartProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <SubscriptionProvider>
+            <CartProvider>
             <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -61,10 +63,11 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-        </CartProvider>
-      </SubscriptionProvider>
-    </AuthProvider>
+            </BrowserRouter>
+          </CartProvider>
+        </SubscriptionProvider>
+      </AuthProvider>
+    </LanguageProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

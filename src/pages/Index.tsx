@@ -10,10 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Star } from "lucide-react";
 import PaidPlanModal from "@/components/PaidPlanModal";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Index = () => {
   const [showPaidPlanModal, setShowPaidPlanModal] = useState(false);
   const { hasActiveSubscription } = useSubscription();
+  const { t } = useLanguage();
 
   return (
     <div className="min-h-screen bg-art-bg">
@@ -28,7 +30,7 @@ const Index = () => {
               className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white font-semibold px-6 py-3 rounded-full shadow-lg"
             >
               <Star className="mr-2 h-5 w-5" />
-              Plano Premium - R$ 17,90/mês
+              {t('premium.title')}
             </Button>
           </div>
         </div>

@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -28,6 +30,7 @@ export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user } = useAuth();
   const { cartItems } = useCart();
+  const { t } = useLanguage();
   const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const navigate = useNavigate();
 
@@ -46,25 +49,30 @@ export const Header = () => {
             <span className="text-2xl font-bold font-heading">Art</span>
           </Link>
 
+          {/* Language Selector */}
+          <div className="hidden md:block">
+            <LanguageSelector />
+          </div>
+
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center gap-6">
             <Link 
               to="/" 
               className="text-gray-700 hover:text-art-primary transition-colors"
             >
-              Início
+              {t('header.home')}
             </Link>
             <Link 
               to="/catalog" 
               className="text-gray-700 hover:text-art-primary transition-colors"
             >
-              Catálogo
+              {t('header.catalog')}
             </Link>
             <Link 
               to="/catalog?category=featured" 
               className="text-gray-700 hover:text-art-primary transition-colors"
             >
-              Destaques
+              {t('header.featured')}
             </Link>
             <Button variant="ghost" size="sm">
               <Search className="h-4 w-4" />
@@ -98,23 +106,23 @@ export const Header = () => {
                   <Button variant="ghost" size="sm" className="flex items-center gap-2">
                     <User className="h-5 w-5" />
                     <span className="hidden sm:inline">
-                      {user.user_metadata?.full_name || "Usuário"}
+                      {user.user_metadata?.full_name || t('header.user')}
                     </span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem onClick={() => navigate("/profile")}>
                     <User className="h-4 w-4 mr-2" />
-                    Meu Perfil
+                    {t('header.myProfile')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/profile?tab=downloads")}>
                     <Download className="h-4 w-4 mr-2" />
-                    Meus Downloads
+                    {t('header.myDownloads')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="h-4 w-4 mr-2" />
-                    Sair
+                    {t('header.signOut')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -125,13 +133,13 @@ export const Header = () => {
                   size="sm"
                   onClick={() => navigate("/auth")}
                 >
-                  Entrar
+                  {t('header.signIn')}
                 </Button>
                 <Button 
                   size="sm"
                   onClick={() => navigate("/auth")}
                 >
-                  Criar Conta
+                  {t('header.createAccount')}
                 </Button>
               </div>
             )}
@@ -151,26 +159,31 @@ export const Header = () => {
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <div className="md:hidden border-t py-4 space-y-3">
+            {/* Mobile Language Selector */}
+            <div className="pb-3 border-b">
+              <LanguageSelector />
+            </div>
+            
             <Link 
               to="/"
               className="block text-gray-700 hover:text-art-primary transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
-              Início
+              {t('header.home')}
             </Link>
             <Link 
               to="/catalog"
               className="block text-gray-700 hover:text-art-primary transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
-              Catálogo
+              {t('header.catalog')}
             </Link>
             <Link 
               to="/catalog?category=featured"
               className="block text-gray-700 hover:text-art-primary transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
-              Destaques
+              {t('header.featured')}
             </Link>
             {!user && (
               <div className="flex flex-col gap-2 pt-2">
@@ -181,7 +194,7 @@ export const Header = () => {
                     setIsMenuOpen(false);
                   }}
                 >
-                  Entrar
+                  {t('header.signIn')}
                 </Button>
                 <Button 
                   onClick={() => {
@@ -189,7 +202,7 @@ export const Header = () => {
                     setIsMenuOpen(false);
                   }}
                 >
-                  Criar Conta
+                  {t('header.createAccount')}
                 </Button>
               </div>
             )}
