@@ -130,4 +130,14 @@ export default {
   'common.delete': 'Excluir',
   'common.edit': 'Editar',
   'common.view': 'Visualizar',
+
+  // Profile
+  'profile.addAvatar': 'Adicionar Avatar',
+  'profile.uploading': 'Enviando...',
+  'profile.avatarUpdated': 'Avatar atualizado',
+  'profile.avatarUpdatedDesc': 'Sua foto de perfil foi atualizada com sucesso!',
+  'profile.error': 'Erro',
+  'profile.fileSizeError': 'O arquivo deve ter no máximo 2MB.',
+  'profile.fileTypeError': 'Por favor, selecione apenas arquivos de imagem.',
+  'profile.fileFormats': 'JPG, PNG ou GIF. Máximo 2MB.',
 };

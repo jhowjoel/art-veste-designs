@@ -7,6 +7,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +26,7 @@ import {
   Download
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -33,6 +35,23 @@ export const Header = () => {
   const { t } = useLanguage();
   const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const navigate = useNavigate();
+
+  const { data: userProfile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -104,9 +123,14 @@ export const Header = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                    <User className="h-5 w-5" />
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={userProfile?.avatar_url || ""} alt="Avatar" />
+                      <AvatarFallback>
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
                     <span className="hidden sm:inline">
-                      {user.user_metadata?.full_name || t('header.user')}
+                      {userProfile?.full_name || user.user_metadata?.full_name || t('header.user')}
                     </span>
                   </Button>
                 </DropdownMenuTrigger>
