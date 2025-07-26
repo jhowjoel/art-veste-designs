@@ -758,15 +758,9 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => {
-            if (!hasActiveSubscription) {
-              setShowPaidPlanModal(true);
-              return;
-            }
-            setShowPathPanel(!showPathPanel);
-          }}
+          onClick={() => setShowPathPanel(!showPathPanel)}
           className={`text-white hover:bg-gray-800 ${showPathPanel ? "bg-gray-700" : ""}`}
-          title="Caminho - Ferramenta Premium"
+          title="Caminho"
         >
           <GitBranch className="h-5 w-5" />
         </Button>
