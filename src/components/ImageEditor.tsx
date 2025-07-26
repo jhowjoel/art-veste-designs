@@ -326,9 +326,16 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
   const colors = ["#000000", "#ff0000", "#0000ff"];
 
   return (
-    <div className={`flex h-full ${className}`}>
-      {/* Toolbar lateral */}
-      <div className="w-16 bg-gray-900 flex flex-col items-center py-4 space-y-2">
+    <div className={`flex flex-col h-screen ${className}`}>
+      {/* Título */}
+      <div className="bg-white border-b px-4 py-3">
+        <h2 className="text-xl font-semibold text-gray-800">Editor de Imagens</h2>
+      </div>
+      
+      {/* Área principal */}
+      <div className="flex flex-1 min-h-0">
+        {/* Toolbar lateral */}
+        <div className="w-16 bg-gray-900 flex flex-col items-center py-4 space-y-2">
         <Button
           variant="ghost"
           size="icon"
@@ -417,19 +424,20 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
         >
           <Download className="h-5 w-5" />
         </Button>
-      </div>
+        </div>
 
-      {/* Canvas principal */}
-      <div className="flex-1 bg-gray-100 p-4">
-        <Card className="h-full flex items-center justify-center bg-white">
-          <div className="border border-gray-200 rounded-lg shadow-lg overflow-hidden">
-            <canvas 
-              ref={canvasRef} 
-              className="max-w-full"
-              style={{ display: "block" }}
-            />
-          </div>
-        </Card>
+        {/* Canvas principal */}
+        <div className="flex-1 bg-gray-100 p-4">
+          <Card className="h-full flex items-center justify-center bg-white">
+            <div className="border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+              <canvas 
+                ref={canvasRef} 
+                className="max-w-full"
+                style={{ display: "block" }}
+              />
+            </div>
+          </Card>
+        </div>
       </div>
 
       {/* Inputs ocultos */}

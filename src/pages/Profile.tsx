@@ -23,6 +23,7 @@ const Profile = () => {
   const [profile, setProfile] = useState<Tables<"profiles"> | null>(null);
   const [fullName, setFullName] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [activeTab, setActiveTab] = useState("profile");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -164,7 +165,7 @@ const Profile = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue="profile" className="space-y-6">
+        <Tabs defaultValue="profile" className="space-y-6" onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="profile">
               <User className="h-4 w-4 mr-2" />
@@ -341,18 +342,10 @@ const Profile = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="tools">
-            <Card className="h-[80vh]">
-              <CardHeader>
-                <CardTitle>Editor de Imagens</CardTitle>
-                <CardDescription>
-                  Transforme imagens em vetores, remova fundos e edite suas imagens
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-full p-0">
-                <ImageEditor className="h-full" />
-              </CardContent>
-            </Card>
+          <TabsContent value="tools" className="p-0 m-0">
+            <div className="fixed inset-0 z-50 bg-white">
+              <ImageEditor />
+            </div>
           </TabsContent>
 
           <TabsContent value="settings">
@@ -390,7 +383,7 @@ const Profile = () => {
         </Tabs>
       </div>
 
-      <Footer />
+      {activeTab !== "tools" && <Footer />}
     </div>
   );
 };
