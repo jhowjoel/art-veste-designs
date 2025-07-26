@@ -50,8 +50,10 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
     });
 
     // Initialize the freeDrawingBrush
-    canvas.freeDrawingBrush.color = activeColor;
-    canvas.freeDrawingBrush.width = 2;
+    if (canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.color = activeColor;
+      canvas.freeDrawingBrush.width = 2;
+    }
 
     setFabricCanvas(canvas);
 
