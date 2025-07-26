@@ -16,6 +16,9 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import ThankYou from "./pages/ThankYou";
 import VectorSubcategories from "./pages/VectorSubcategories";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCanceled from "./pages/PaymentCanceled";
+import PaymentPending from "./pages/PaymentPending";
 import { CartProvider } from "@/hooks/useCart";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
 
@@ -52,6 +55,9 @@ const App = () => (
                   <ThankYou />
                 </ProtectedRoute>
               } />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
+              <Route path="/payment-canceled" element={<PaymentCanceled />} />
+              <Route path="/payment-pending" element={<PaymentPending />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

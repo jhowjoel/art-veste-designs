@@ -155,17 +155,74 @@ serve(async (req) => {
         status: 200,
       });
     } else {
-      // Credit card payment
+      // Credit card payment - create Mercado Pago preference
+      const mercadoPagoToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+      if (!mercadoPagoToken) {
+        throw new Error("Token do Mercado Pago não configurado");
+      }
+
+      const preferenceData = {
+        items: [
+          {
+            title: `Assinatura EstampArt - Plano Premium`,
+            description: `Plano mensal premium com downloads ilimitados`,
+            quantity: 1,
+            currency_id: "BRL",
+            unit_price: amount / 100
+          }
+        ],
+        external_reference: order.id,
+        payer: {
+          email: user.email,
+          name: user.user_metadata?.full_name || "Cliente EstampArt"
+        },
+        payment_methods: {
+          excluded_payment_types: [
+            { id: "ticket" },
+            { id: "bank_transfer" }
+          ],
+          installments: 3
+        },
+        back_urls: {
+          success: `${req.headers.get("origin")}/payment-success`,
+          failure: `${req.headers.get("origin")}/payment-canceled`,
+          pending: `${req.headers.get("origin")}/payment-pending`
+        },
+        auto_return: "approved"
+      };
+
+      const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${mercadoPagoToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(preferenceData)
+      });
+
+      if (!mpResponse.ok) {
+        const error = await mpResponse.json();
+        throw new Error(`Erro Mercado Pago: ${JSON.stringify(error)}`);
+      }
+
+      const mpData = await mpResponse.json();
+      
+      // Update order with payment ID
+      await supabaseService
+        .from("orders")
+        .update({ 
+          payment_id: mpData.id,
+          payment_status: "pending" 
+        })
+        .eq("id", order.id);
+
       const creditCardData = {
         order_id: order.id,
+        payment_id: mpData.id,
         status: "pending",
         credit_card: {
-          payment_url: `https://mercadopago.com.br/checkout/v1/redirect?preference-id=MP_${order.id}`,
-          installments: [
-            { installments: 1, total_amount: amount },
-            { installments: 2, total_amount: amount * 1.05 },
-            { installments: 3, total_amount: amount * 1.10 }
-          ]
+          payment_url: mpData.init_point,
+          sandbox_url: mpData.sandbox_init_point
         }
       };
       
