@@ -17,6 +17,9 @@ import { ImageEditor } from "@/components/ImageEditor";
 import { PerformanceDashboard } from "@/components/PerformanceDashboard";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useSubscription } from "@/hooks/useSubscription";
+import PaidPlanModal from "@/components/PaidPlanModal";
+import { Lock } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -28,11 +31,13 @@ const Profile = () => {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
   const [isLoading, setIsLoading] = useState(true);
+  const [showPlanModal, setShowPlanModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useLanguage();
   const queryClient = useQueryClient();
+  const { hasActiveSubscription } = useSubscription();
 
   useEffect(() => {
     const getUser = async () => {
@@ -210,6 +215,53 @@ const Profile = () => {
     }
   };
 
+  const handleToolAccess = async () => {
+    // Se tem assinatura ativa, permite acesso
+    if (hasActiveSubscription) {
+      setActiveTab("tools");
+      return;
+    }
+
+    // Verifica se já usou o teste grátis
+    const freeUses = profile?.free_tool_uses || 0;
+    
+    if (freeUses >= 1) {
+      // Já usou o teste grátis, mostra modal de plano pago
+      setShowPlanModal(true);
+      return;
+    }
+
+    // Primeira vez usando, incrementa contador e permite acesso
+    try {
+      await supabase
+        .from("profiles")
+        .update({ free_tool_uses: freeUses + 1 })
+        .eq("id", user!.id);
+      
+      queryClient.invalidateQueries({ queryKey: ["profile", user!.id] });
+      setActiveTab("tools");
+      
+      toast({
+        title: "Teste Gratuito",
+        description: "Esta é sua única oportunidade de testar as ferramentas gratuitamente!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTabChange = (value: string) => {
+    if (value === "tools") {
+      handleToolAccess();
+    } else {
+      setActiveTab(value);
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/");
@@ -245,7 +297,7 @@ const Profile = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue="profile" className="space-y-6" onValueChange={setActiveTab}>
+        <Tabs value={activeTab} className="space-y-6" onValueChange={handleTabChange}>
           <TabsList className={`grid w-full ${user?.email === 'jota100clock@gmail.com' ? 'grid-cols-6' : 'grid-cols-5'}`}>
             <TabsTrigger value="profile">
               <User className="h-4 w-4 mr-2" />
@@ -259,9 +311,15 @@ const Profile = () => {
               <ShoppingBag className="h-4 w-4 mr-2" />
               Pedidos
             </TabsTrigger>
-            <TabsTrigger value="tools">
+            <TabsTrigger value="tools" className="relative">
               <Wrench className="h-4 w-4 mr-2" />
               Ferramentas
+              {!hasActiveSubscription && (profile?.free_tool_uses || 0) >= 1 && (
+                <Lock className="h-3 w-3 ml-1 text-muted-foreground" />
+              )}
+              {!hasActiveSubscription && (profile?.free_tool_uses || 0) === 0 && (
+                <Badge variant="secondary" className="ml-2 text-xs">Teste Grátis</Badge>
+              )}
             </TabsTrigger>
             {user?.email === 'jota100clock@gmail.com' && (
               <TabsTrigger value="performance">
@@ -453,6 +511,11 @@ const Profile = () => {
       </div>
 
       {activeTab !== "tools" && <Footer />}
+      
+      <PaidPlanModal 
+        isOpen={showPlanModal}
+        onClose={() => setShowPlanModal(false)}
+      />
     </div>
   );
 };

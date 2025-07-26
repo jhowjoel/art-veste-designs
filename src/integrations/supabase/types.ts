@@ -279,6 +279,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           email: string
+          free_tool_uses: number | null
           full_name: string | null
           id: string
           is_admin: boolean | null
@@ -288,6 +289,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email: string
+          free_tool_uses?: number | null
           full_name?: string | null
           id: string
           is_admin?: boolean | null
@@ -297,6 +299,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string
+          free_tool_uses?: number | null
           full_name?: string | null
           id?: string
           is_admin?: boolean | null
