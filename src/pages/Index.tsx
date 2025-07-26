@@ -6,6 +6,7 @@ import { Hero } from "@/components/Hero";
 import { FeaturedProducts } from "@/components/FeaturedProducts";
 import { Categories } from "@/components/Categories";
 import { ImageConverter } from "@/components/ImageConverter";
+import { CustomArtRequest } from "@/components/CustomArtRequest";
 import { Button } from "@/components/ui/button";
 import { Star } from "lucide-react";
 import PaidPlanModal from "@/components/PaidPlanModal";
@@ -48,6 +49,12 @@ const Index = () => {
           </div>
         </div>
       </div>
+      
+      {/* Custom Art Request Section */}
+      <div className="container mx-auto px-4 py-8">
+        <CustomArtRequest />
+      </div>
+      
       <Footer />
       
       <PaidPlanModal 

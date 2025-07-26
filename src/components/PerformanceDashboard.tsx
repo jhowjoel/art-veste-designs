@@ -3,7 +3,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Download, CreditCard, TrendingUp, TrendingDown, DollarSign, Globe } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Users, Download, CreditCard, TrendingUp, TrendingDown, DollarSign, Globe, MessageSquare } from "lucide-react";
+
+interface CustomArtRequest {
+  id: string;
+  email: string;
+  full_name: string;
+  country: string;
+  message: string;
+  status: string;
+  created_at: string;
+}
 
 interface PerformanceStats {
   totalUsers: number;
@@ -16,6 +27,7 @@ interface PerformanceStats {
   yearlyStats: any;
   downloadsByCategory: any[];
   usersByCountry: any[];
+  customArtRequests: CustomArtRequest[];
 }
 
 export const PerformanceDashboard = () => {
@@ -30,6 +42,7 @@ export const PerformanceDashboard = () => {
     yearlyStats: {},
     downloadsByCategory: [],
     usersByCountry: [],
+    customArtRequests: [],
   });
   const [loading, setLoading] = useState(true);
 
@@ -108,6 +121,16 @@ export const PerformanceDashboard = () => {
       const yearlyRevenue = subscriptions?.filter(s => new Date(s.created_at) >= yearAgo)
         .reduce((sum, s) => sum + (Number(s.amount) || 0), 0) || 0;
 
+      // Buscar solicitações de arte personalizada
+      const { data: customRequests, error: requestsError } = await supabase
+        .from("custom_art_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
+      
+      if (requestsError) {
+        console.error("Error fetching custom art requests:", requestsError);
+      }
+
       setStats({
         totalUsers: users?.length || 0,
         totalSubscriptions: subscriptions?.length || 0,
@@ -142,6 +165,7 @@ export const PerformanceDashboard = () => {
           count,
         })),
         usersByCountry: [], // Implementar quando houver dados de país
+        customArtRequests: customRequests || [],
       });
     } catch (error) {
       console.error("Erro ao carregar estatísticas:", error);
@@ -350,6 +374,57 @@ export const PerformanceDashboard = () => {
               <p className="text-muted-foreground text-sm">
                 Nenhum download registrado ainda
               </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Separator />
+
+      {/* Solicitações de Arte Personalizada */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            Solicitações de Arte Personalizada
+          </CardTitle>
+          <CardDescription>
+            Mensagens de usuários com plano pago solicitando artes personalizadas
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {stats.customArtRequests.length > 0 ? (
+              stats.customArtRequests.map((request) => (
+                <div key={request.id} className="border rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{request.status}</Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(request.created_at).toLocaleDateString("pt-BR")}
+                      </span>
+                    </div>
+                    <Badge variant="secondary">
+                      <Globe className="h-3 w-3 mr-1" />
+                      {request.country}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-medium">{request.full_name}</p>
+                    <p className="text-sm text-muted-foreground">{request.email}</p>
+                  </div>
+                  <div className="bg-muted/50 rounded p-3">
+                    <p className="text-sm">{request.message}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
+                <p className="text-muted-foreground">
+                  Nenhuma solicitação de arte personalizada ainda
+                </p>
+              </div>
             )}
           </div>
         </CardContent>
