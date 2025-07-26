@@ -159,7 +159,7 @@ const PaidPlanModal = ({ isOpen, onClose }: PaidPlanModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl">
             Plano Premium - EstampArt
