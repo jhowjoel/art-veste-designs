@@ -52,8 +52,50 @@ export type Database = {
           },
         ]
       }
+      custom_art_messages: {
+        Row: {
+          created_at: string
+          file_urls: string[] | null
+          id: string
+          is_admin: boolean
+          message: string | null
+          request_id: string
+          sender_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_urls?: string[] | null
+          id?: string
+          is_admin?: boolean
+          message?: string | null
+          request_id: string
+          sender_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_urls?: string[] | null
+          id?: string
+          is_admin?: boolean
+          message?: string | null
+          request_id?: string
+          sender_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_art_messages_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "custom_art_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_art_requests: {
         Row: {
+          conversation_status: string | null
           country: string | null
           created_at: string
           email: string
@@ -65,6 +107,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          conversation_status?: string | null
           country?: string | null
           created_at?: string
           email: string
@@ -76,6 +119,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          conversation_status?: string | null
           country?: string | null
           created_at?: string
           email?: string

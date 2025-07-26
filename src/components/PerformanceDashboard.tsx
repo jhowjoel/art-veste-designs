@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Users, Download, CreditCard, TrendingUp, TrendingDown, DollarSign, Globe, MessageSquare } from "lucide-react";
+import { CustomArtConversation } from "@/components/CustomArtConversation";
 
 interface CustomArtRequest {
   id: string;
@@ -13,7 +14,9 @@ interface CustomArtRequest {
   country: string;
   message: string;
   status: string;
+  conversation_status: string;
   created_at: string;
+  user_id: string;
 }
 
 interface PerformanceStats {
@@ -382,53 +385,38 @@ export const PerformanceDashboard = () => {
       <Separator />
 
       {/* Solicitações de Arte Personalizada */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-xl font-semibold mb-2 flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
             Solicitações de Arte Personalizada
-          </CardTitle>
-          <CardDescription>
-            Mensagens de usuários com plano pago solicitando artes personalizadas
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {stats.customArtRequests.length > 0 ? (
-              stats.customArtRequests.map((request) => (
-                <div key={request.id} className="border rounded-lg p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">{request.status}</Badge>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(request.created_at).toLocaleDateString("pt-BR")}
-                      </span>
-                    </div>
-                    <Badge variant="secondary">
-                      <Globe className="h-3 w-3 mr-1" />
-                      {request.country}
-                    </Badge>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="font-medium">{request.full_name}</p>
-                    <p className="text-sm text-muted-foreground">{request.email}</p>
-                  </div>
-                  <div className="bg-muted/50 rounded p-3">
-                    <p className="text-sm">{request.message}</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
-                <p className="text-muted-foreground">
-                  Nenhuma solicitação de arte personalizada ainda
-                </p>
-              </div>
-            )}
+          </h3>
+          <p className="text-muted-foreground">
+            Conversas com usuários com plano pago solicitando artes personalizadas
+          </p>
+        </div>
+
+        {stats.customArtRequests.length > 0 ? (
+          <div className="space-y-6">
+            {stats.customArtRequests.map((request) => (
+              <CustomArtConversation 
+                key={request.id} 
+                request={request} 
+                onUpdate={loadStats}
+              />
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        ) : (
+          <Card>
+            <CardContent className="text-center py-8">
+              <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
+              <p className="text-muted-foreground">
+                Nenhuma solicitação de arte personalizada ainda
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };
