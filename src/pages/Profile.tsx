@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,19 +26,25 @@ const Profile = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
+  const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/auth");
-        return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          navigate("/auth");
+          return;
+        }
+        setUser(user);
+      } finally {
+        setIsLoading(false);
       }
-      setUser(user);
     };
 
     getUser();
@@ -115,13 +120,6 @@ const Profile = () => {
     }
   }, [userProfile]);
 
-  if (!user) {
-    return null;
-  }
-
-  // Get language context after user check
-  const { t } = useLanguage();
-
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
@@ -154,21 +152,19 @@ const Profile = () => {
     const file = event.target.files?.[0];
     if (!file || !user?.id) return;
 
-    // Check file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast({
-        title: t('profile.error'),
-        description: t('profile.fileSizeError'),
+        title: "Erro",
+        description: "O arquivo deve ter no máximo 2MB.",
         variant: "destructive",
       });
       return;
     }
 
-    // Check file type
     if (!file.type.startsWith('image/')) {
       toast({
-        title: t('profile.error'),
-        description: t('profile.fileTypeError'),
+        title: "Erro",
+        description: "Por favor, selecione apenas arquivos de imagem.",
         variant: "destructive",
       });
       return;
@@ -176,30 +172,19 @@ const Profile = () => {
 
     setIsUploadingAvatar(true);
     try {
-      // Create file name with user ID
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/avatar.${fileExt}`;
 
-      // Delete existing avatar if any
-      if (profile?.avatar_url) {
-        await supabase.storage
-          .from('avatars')
-          .remove([`${user.id}/avatar.${profile.avatar_url.split('.').pop()}`]);
-      }
-
-      // Upload new avatar
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
 
-      // Update profile with new avatar URL
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: data.publicUrl })
@@ -207,16 +192,15 @@ const Profile = () => {
 
       if (updateError) throw updateError;
 
-      // Refresh queries
       queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
 
       toast({
-        title: t('profile.avatarUpdated'),
-        description: t('profile.avatarUpdatedDesc'),
+        title: "Avatar atualizado",
+        description: "Sua foto de perfil foi atualizada com sucesso!",
       });
     } catch (error: any) {
       toast({
-        title: t('profile.error'),
+        title: "Erro",
         description: error.message,
         variant: "destructive",
       });
@@ -229,6 +213,18 @@ const Profile = () => {
     await supabase.auth.signOut();
     navigate("/");
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-art-bg flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-art-bg">
@@ -282,7 +278,6 @@ const Profile = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {/* Avatar Section */}
                   <div className="flex items-center gap-6">
                     <Avatar className="h-24 w-24">
                       <AvatarImage src={profile?.avatar_url || ""} alt="Avatar" />
@@ -302,12 +297,12 @@ const Profile = () => {
                           {isUploadingAvatar ? (
                             <>
                               <Upload className="h-4 w-4 mr-2 animate-spin" />
-                              {t('profile.uploading')}
+                              Enviando...
                             </>
                           ) : (
                             <>
                               <Camera className="h-4 w-4 mr-2" />
-                              {t('profile.addAvatar')}
+                              Adicionar Avatar
                             </>
                           )}
                         </Button>
@@ -320,14 +315,13 @@ const Profile = () => {
                         />
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {t('profile.fileFormats')}
+                        JPG, PNG ou GIF. Máximo 2MB.
                       </p>
                     </div>
                   </div>
 
                   <Separator />
 
-                  {/* Profile Form */}
                   <form onSubmit={handleUpdateProfile} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
@@ -419,56 +413,9 @@ const Profile = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Histórico de Pedidos</CardTitle>
-                <CardDescription>
-                  Visualize todos os seus pedidos
-                </CardDescription>
               </CardHeader>
               <CardContent>
-                {userOrders?.length === 0 ? (
-                  <div className="text-center py-8">
-                    <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">
-                      Você ainda não fez nenhum pedido
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {userOrders?.map((order) => (
-                      <Card key={order.id}>
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-muted-foreground">
-                              Pedido #{order.id.slice(0, 8)}
-                            </span>
-                            <Badge
-                              variant={
-                                order.payment_status === "paid"
-                                  ? "default"
-                                  : order.payment_status === "pending"
-                                  ? "secondary"
-                                  : "destructive"
-                              }
-                            >
-                              {order.payment_status === "paid"
-                                ? "Pago"
-                                : order.payment_status === "pending"
-                                ? "Pendente"
-                                : "Falhou"}
-                            </Badge>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="font-semibold">
-                              R$ {order.total_amount.toFixed(2)}
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                              {new Date(order.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+                <p>Em desenvolvimento...</p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -483,31 +430,9 @@ const Profile = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Configurações da Conta</CardTitle>
-                <CardDescription>
-                  Gerencie suas preferências de conta
-                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Alterar Senha</h3>
-                  <Button variant="outline">
-                    Enviar Link de Redefinição
-                  </Button>
-                </div>
-                
-                <Separator />
-                
-                <div>
-                  <h3 className="text-lg font-semibold mb-2 text-destructive">
-                    Zona de Perigo
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Ações irreversíveis relacionadas à sua conta
-                  </p>
-                  <Button variant="destructive" disabled>
-                    Excluir Conta
-                  </Button>
-                </div>
+              <CardContent>
+                <p>Em desenvolvimento...</p>
               </CardContent>
             </Card>
           </TabsContent>
