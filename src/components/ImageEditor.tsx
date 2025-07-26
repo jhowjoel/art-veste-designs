@@ -14,11 +14,19 @@ import {
   Square,
   Circle,
   Type,
-  Trash2
+  Trash2,
+  GitBranch,
+  ChevronRight,
+  Settings
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { pipeline, env } from '@huggingface/transformers';
 import { ColorPicker } from "./ColorPicker";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Configure transformers.js
 env.allowLocalModels = false;
@@ -36,6 +44,67 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
   const [activeColor, setActiveColor] = useState("#000000");
   const [activeTool, setActiveTool] = useState<"select" | "move" | "draw" | "rectangle" | "circle" | "text" | "erase">("select");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showPathPanel, setShowPathPanel] = useState(false);
+  const [pathActiveTab, setPathActiveTab] = useState("trace");
+  const [traceActiveTab, setTraceActiveTab] = useState("single");
+  
+  // Estados para Varredura Única
+  const [singleScanSettings, setSingleScanSettings] = useState({
+    detectionMode: "brightness",
+    brightnessThreshold: [128],
+    edgeDetection: [50],
+    colorCount: [2],
+    autoTrace: false,
+    centerLineTrace: false,
+    edgeThreshold: [100],
+    invertImage: false,
+    blur: [0],
+    simplification: [2],
+    optimization: [0.2],
+    userAssisted: false
+  });
+
+  // Estados para Multi Colorido
+  const [multiColorSettings, setMultiColorSettings] = useState({
+    brightnessLevels: [4],
+    colors: [8],
+    grays: [4],
+    autoTraceSlow: false,
+    selectableScans: true,
+    smooth: [1],
+    stack: false,
+    removeBackground: false,
+    blur: [0],
+    simplification: [2],
+    optimization: [0.2],
+    userAssisted: false
+  });
+
+  // Estados para Arte Pixel
+  const [pixelArtSettings, setPixelArtSettings] = useState({
+    brightnessLevels: [4],
+    colors: [16],
+    grays: [4],
+    autoTraceSlow: false,
+    curves: true,
+    islands: [5],
+    sparsePixels: [3],
+    multiplier: [1],
+    optimization: [0.5],
+    voronoiOutput: false,
+    bSplinesOutput: true
+  });
+
+  // Estados para Preenchimento e Contorno
+  const [fillStrokeSettings, setFillStrokeSettings] = useState({
+    fill: true,
+    fillColor: "#000000",
+    stroke: true,
+    strokeColor: "#000000",
+    strokeWidth: [1],
+    strokeStyle: "solid"
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -424,6 +493,18 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
         >
           <Download className="h-5 w-5" />
         </Button>
+
+        <Separator className="w-8 bg-gray-700" />
+
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setShowPathPanel(!showPathPanel)}
+          className={`text-white hover:bg-gray-800 ${showPathPanel ? "bg-gray-700" : ""}`}
+          title="Caminho"
+        >
+          <GitBranch className="h-5 w-5" />
+        </Button>
         </div>
 
         {/* Canvas principal */}
@@ -438,6 +519,581 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
             </div>
           </Card>
         </div>
+
+        {/* Painel de Caminho */}
+        {showPathPanel && (
+          <div className="w-80 bg-gray-900 text-white overflow-y-auto">
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Caminho</h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowPathPanel(false)}
+                  className="text-white hover:bg-gray-800"
+                >
+                  ×
+                </Button>
+              </div>
+
+              <Tabs value={pathActiveTab} onValueChange={setPathActiveTab}>
+                <TabsList className="grid w-full grid-cols-2 bg-gray-800">
+                  <TabsTrigger value="trace" className="text-white data-[state=active]:bg-gray-700">
+                    Traçar Bitmap
+                  </TabsTrigger>
+                  <TabsTrigger value="fillstroke" className="text-white data-[state=active]:bg-gray-700">
+                    Preenchimento
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="trace" className="space-y-4">
+                  <Tabs value={traceActiveTab} onValueChange={setTraceActiveTab}>
+                    <TabsList className="grid w-full grid-cols-3 bg-gray-800">
+                      <TabsTrigger value="single" className="text-xs text-white data-[state=active]:bg-gray-700">
+                        Varredura Única
+                      </TabsTrigger>
+                      <TabsTrigger value="multi" className="text-xs text-white data-[state=active]:bg-gray-700">
+                        Multi Colorido
+                      </TabsTrigger>
+                      <TabsTrigger value="pixel" className="text-xs text-white data-[state=active]:bg-gray-700">
+                        Arte Pixel
+                      </TabsTrigger>
+                    </TabsList>
+
+                    {/* Varredura Única */}
+                    <TabsContent value="single" className="space-y-4">
+                      <div>
+                        <Label className="text-white mb-2 block">Modo de Detecção</Label>
+                        <Select 
+                          value={singleScanSettings.detectionMode} 
+                          onValueChange={(value) => setSingleScanSettings({...singleScanSettings, detectionMode: value})}
+                        >
+                          <SelectTrigger className="bg-gray-800 text-white border-gray-700">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-gray-800 text-white border-gray-700">
+                            <SelectItem value="brightness">Limite de Brilho</SelectItem>
+                            <SelectItem value="edge">Detecção de Bordas</SelectItem>
+                            <SelectItem value="color">Quantidade de Cores</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Limite de Brilho: {singleScanSettings.brightnessThreshold[0]}</Label>
+                        <Slider
+                          value={singleScanSettings.brightnessThreshold}
+                          onValueChange={(value) => setSingleScanSettings({...singleScanSettings, brightnessThreshold: value})}
+                          max={255}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Detecção de Bordas: {singleScanSettings.edgeDetection[0]}</Label>
+                        <Slider
+                          value={singleScanSettings.edgeDetection}
+                          onValueChange={(value) => setSingleScanSettings({...singleScanSettings, edgeDetection: value})}
+                          max={100}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Quantidade de Cores: {singleScanSettings.colorCount[0]}</Label>
+                        <Slider
+                          value={singleScanSettings.colorCount}
+                          onValueChange={(value) => setSingleScanSettings({...singleScanSettings, colorCount: value})}
+                          min={1}
+                          max={64}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="autoTrace"
+                          checked={singleScanSettings.autoTrace}
+                          onCheckedChange={(checked) => setSingleScanSettings({...singleScanSettings, autoTrace: !!checked})}
+                        />
+                        <Label htmlFor="autoTrace" className="text-white">Traçar Automaticamente</Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="centerLine"
+                          checked={singleScanSettings.centerLineTrace}
+                          onCheckedChange={(checked) => setSingleScanSettings({...singleScanSettings, centerLineTrace: !!checked})}
+                        />
+                        <Label htmlFor="centerLine" className="text-white">Traçado de Linha Central</Label>
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Limite de Bordas: {singleScanSettings.edgeThreshold[0]}</Label>
+                        <Slider
+                          value={singleScanSettings.edgeThreshold}
+                          onValueChange={(value) => setSingleScanSettings({...singleScanSettings, edgeThreshold: value})}
+                          max={1000}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="invertImage"
+                          checked={singleScanSettings.invertImage}
+                          onCheckedChange={(checked) => setSingleScanSettings({...singleScanSettings, invertImage: !!checked})}
+                        />
+                        <Label htmlFor="invertImage" className="text-white">Inverter Imagem</Label>
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Mancha: {singleScanSettings.blur[0]}</Label>
+                        <Slider
+                          value={singleScanSettings.blur}
+                          onValueChange={(value) => setSingleScanSettings({...singleScanSettings, blur: value})}
+                          max={10}
+                          step={0.1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Simplificação: {singleScanSettings.simplification[0]}</Label>
+                        <Slider
+                          value={singleScanSettings.simplification}
+                          onValueChange={(value) => setSingleScanSettings({...singleScanSettings, simplification: value})}
+                          max={10}
+                          step={0.1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Otimização: {singleScanSettings.optimization[0]}</Label>
+                        <Slider
+                          value={singleScanSettings.optimization}
+                          onValueChange={(value) => setSingleScanSettings({...singleScanSettings, optimization: value})}
+                          max={1}
+                          step={0.01}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="userAssisted"
+                          checked={singleScanSettings.userAssisted}
+                          onCheckedChange={(checked) => setSingleScanSettings({...singleScanSettings, userAssisted: !!checked})}
+                        />
+                        <Label htmlFor="userAssisted" className="text-white">Rastreamento Assistido</Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="preview"
+                          checked={true}
+                        />
+                        <Label htmlFor="preview" className="text-white">Pré-visualização</Label>
+                      </div>
+
+                      <Button 
+                        onClick={() => {
+                          toast({
+                            title: "Aplicando Varredura Única",
+                            description: "Processando vetorização...",
+                          });
+                        }}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                      >
+                        Aplicar
+                      </Button>
+                    </TabsContent>
+
+                    {/* Multi Colorido */}
+                    <TabsContent value="multi" className="space-y-4">
+                      <div>
+                        <Label className="text-white mb-2 block">Níveis de Brilho: {multiColorSettings.brightnessLevels[0]}</Label>
+                        <Slider
+                          value={multiColorSettings.brightnessLevels}
+                          onValueChange={(value) => setMultiColorSettings({...multiColorSettings, brightnessLevels: value})}
+                          min={1}
+                          max={32}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Cores: {multiColorSettings.colors[0]}</Label>
+                        <Slider
+                          value={multiColorSettings.colors}
+                          onValueChange={(value) => setMultiColorSettings({...multiColorSettings, colors: value})}
+                          min={1}
+                          max={256}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Cinzas: {multiColorSettings.grays[0]}</Label>
+                        <Slider
+                          value={multiColorSettings.grays}
+                          onValueChange={(value) => setMultiColorSettings({...multiColorSettings, grays: value})}
+                          min={1}
+                          max={32}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="autoTraceSlow"
+                          checked={multiColorSettings.autoTraceSlow}
+                          onCheckedChange={(checked) => setMultiColorSettings({...multiColorSettings, autoTraceSlow: !!checked})}
+                        />
+                        <Label htmlFor="autoTraceSlow" className="text-white">Traçar Automaticamente (Lento)</Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="selectableScans"
+                          checked={multiColorSettings.selectableScans}
+                          onCheckedChange={(checked) => setMultiColorSettings({...multiColorSettings, selectableScans: !!checked})}
+                        />
+                        <Label htmlFor="selectableScans" className="text-white">Varreduras Selecionáveis</Label>
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Suavizar: {multiColorSettings.smooth[0]}</Label>
+                        <Slider
+                          value={multiColorSettings.smooth}
+                          onValueChange={(value) => setMultiColorSettings({...multiColorSettings, smooth: value})}
+                          max={10}
+                          step={0.1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="stack"
+                          checked={multiColorSettings.stack}
+                          onCheckedChange={(checked) => setMultiColorSettings({...multiColorSettings, stack: !!checked})}
+                        />
+                        <Label htmlFor="stack" className="text-white">Empilhar</Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="removeBack"
+                          checked={multiColorSettings.removeBackground}
+                          onCheckedChange={(checked) => setMultiColorSettings({...multiColorSettings, removeBackground: !!checked})}
+                        />
+                        <Label htmlFor="removeBack" className="text-white">Remover Imagem de Fundo</Label>
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Mancha: {multiColorSettings.blur[0]}</Label>
+                        <Slider
+                          value={multiColorSettings.blur}
+                          onValueChange={(value) => setMultiColorSettings({...multiColorSettings, blur: value})}
+                          max={10}
+                          step={0.1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Simplificação: {multiColorSettings.simplification[0]}</Label>
+                        <Slider
+                          value={multiColorSettings.simplification}
+                          onValueChange={(value) => setMultiColorSettings({...multiColorSettings, simplification: value})}
+                          max={10}
+                          step={0.1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Otimização: {multiColorSettings.optimization[0]}</Label>
+                        <Slider
+                          value={multiColorSettings.optimization}
+                          onValueChange={(value) => setMultiColorSettings({...multiColorSettings, optimization: value})}
+                          max={1}
+                          step={0.01}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <Button 
+                        onClick={() => {
+                          toast({
+                            title: "Aplicando Multi Colorido",
+                            description: "Processando vetorização...",
+                          });
+                        }}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                      >
+                        Aplicar
+                      </Button>
+                    </TabsContent>
+
+                    {/* Arte Pixel */}
+                    <TabsContent value="pixel" className="space-y-4">
+                      <div>
+                        <Label className="text-white mb-2 block">Níveis de Brilho: {pixelArtSettings.brightnessLevels[0]}</Label>
+                        <Slider
+                          value={pixelArtSettings.brightnessLevels}
+                          onValueChange={(value) => setPixelArtSettings({...pixelArtSettings, brightnessLevels: value})}
+                          min={1}
+                          max={32}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Cores: {pixelArtSettings.colors[0]}</Label>
+                        <Slider
+                          value={pixelArtSettings.colors}
+                          onValueChange={(value) => setPixelArtSettings({...pixelArtSettings, colors: value})}
+                          min={1}
+                          max={256}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Cinzas: {pixelArtSettings.grays[0]}</Label>
+                        <Slider
+                          value={pixelArtSettings.grays}
+                          onValueChange={(value) => setPixelArtSettings({...pixelArtSettings, grays: value})}
+                          min={1}
+                          max={32}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="autoTracePixel"
+                          checked={pixelArtSettings.autoTraceSlow}
+                          onCheckedChange={(checked) => setPixelArtSettings({...pixelArtSettings, autoTraceSlow: !!checked})}
+                        />
+                        <Label htmlFor="autoTracePixel" className="text-white">Traçar Automaticamente (Lento)</Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="curves"
+                          checked={pixelArtSettings.curves}
+                          onCheckedChange={(checked) => setPixelArtSettings({...pixelArtSettings, curves: !!checked})}
+                        />
+                        <Label htmlFor="curves" className="text-white">Curvas</Label>
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Ilhas: {pixelArtSettings.islands[0]}</Label>
+                        <Slider
+                          value={pixelArtSettings.islands}
+                          onValueChange={(value) => setPixelArtSettings({...pixelArtSettings, islands: value})}
+                          min={1}
+                          max={100}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Pixel Espaçosos - Raio: {pixelArtSettings.sparsePixels[0]}</Label>
+                        <Slider
+                          value={pixelArtSettings.sparsePixels}
+                          onValueChange={(value) => setPixelArtSettings({...pixelArtSettings, sparsePixels: value})}
+                          min={1}
+                          max={20}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Multiplicador: {pixelArtSettings.multiplier[0]}</Label>
+                        <Slider
+                          value={pixelArtSettings.multiplier}
+                          onValueChange={(value) => setPixelArtSettings({...pixelArtSettings, multiplier: value})}
+                          min={0.1}
+                          max={5}
+                          step={0.1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Otimização: {pixelArtSettings.optimization[0]}</Label>
+                        <Slider
+                          value={pixelArtSettings.optimization}
+                          onValueChange={(value) => setPixelArtSettings({...pixelArtSettings, optimization: value})}
+                          max={1}
+                          step={0.01}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Saída</Label>
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="voronoi"
+                              checked={pixelArtSettings.voronoiOutput}
+                              onCheckedChange={(checked) => setPixelArtSettings({...pixelArtSettings, voronoiOutput: !!checked})}
+                            />
+                            <Label htmlFor="voronoi" className="text-white">Voronoi</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="bsplines"
+                              checked={pixelArtSettings.bSplinesOutput}
+                              onCheckedChange={(checked) => setPixelArtSettings({...pixelArtSettings, bSplinesOutput: !!checked})}
+                            />
+                            <Label htmlFor="bsplines" className="text-white">B-splines</Label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button 
+                        onClick={() => {
+                          toast({
+                            title: "Aplicando Arte Pixel",
+                            description: "Processando vetorização...",
+                          });
+                        }}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                      >
+                        Aplicar
+                      </Button>
+                    </TabsContent>
+                  </Tabs>
+                </TabsContent>
+
+                {/* Preenchimento e Contorno */}
+                <TabsContent value="fillstroke" className="space-y-4">
+                  <div>
+                    <Label className="text-white mb-4 block text-lg">Preenchimento e Contorno</Label>
+                    
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="fill"
+                          checked={fillStrokeSettings.fill}
+                          onCheckedChange={(checked) => setFillStrokeSettings({...fillStrokeSettings, fill: !!checked})}
+                        />
+                        <Label htmlFor="fill" className="text-white">Preenchimento</Label>
+                      </div>
+
+                      {fillStrokeSettings.fill && (
+                        <div>
+                          <Label className="text-white mb-2 block">Cor do Preenchimento</Label>
+                          <div className="flex space-x-2">
+                            {colors.map((color) => (
+                              <button
+                                key={color}
+                                onClick={() => setFillStrokeSettings({...fillStrokeSettings, fillColor: color})}
+                                className={`w-8 h-8 rounded border-2 ${
+                                  fillStrokeSettings.fillColor === color ? "border-white" : "border-gray-600"
+                                }`}
+                                style={{ backgroundColor: color }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="stroke"
+                          checked={fillStrokeSettings.stroke}
+                          onCheckedChange={(checked) => setFillStrokeSettings({...fillStrokeSettings, stroke: !!checked})}
+                        />
+                        <Label htmlFor="stroke" className="text-white">Contorno</Label>
+                      </div>
+
+                      {fillStrokeSettings.stroke && (
+                        <>
+                          <div>
+                            <Label className="text-white mb-2 block">Cor do Contorno</Label>
+                            <div className="flex space-x-2">
+                              {colors.map((color) => (
+                                <button
+                                  key={color}
+                                  onClick={() => setFillStrokeSettings({...fillStrokeSettings, strokeColor: color})}
+                                  className={`w-8 h-8 rounded border-2 ${
+                                    fillStrokeSettings.strokeColor === color ? "border-white" : "border-gray-600"
+                                  }`}
+                                  style={{ backgroundColor: color }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label className="text-white mb-2 block">Largura do Contorno: {fillStrokeSettings.strokeWidth[0]}</Label>
+                            <Slider
+                              value={fillStrokeSettings.strokeWidth}
+                              onValueChange={(value) => setFillStrokeSettings({...fillStrokeSettings, strokeWidth: value})}
+                              min={1}
+                              max={20}
+                              step={1}
+                              className="w-full"
+                            />
+                          </div>
+
+                          <div>
+                            <Label className="text-white mb-2 block">Estilo do Contorno</Label>
+                            <Select 
+                              value={fillStrokeSettings.strokeStyle} 
+                              onValueChange={(value) => setFillStrokeSettings({...fillStrokeSettings, strokeStyle: value})}
+                            >
+                              <SelectTrigger className="bg-gray-800 text-white border-gray-700">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-gray-800 text-white border-gray-700">
+                                <SelectItem value="solid">Sólido</SelectItem>
+                                <SelectItem value="dashed">Tracejado</SelectItem>
+                                <SelectItem value="dotted">Pontilhado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      )}
+
+                      <Button 
+                        onClick={() => {
+                          toast({
+                            title: "Aplicando Preenchimento e Contorno",
+                            description: "Aplicando configurações de estilo...",
+                          });
+                        }}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                      >
+                        Aplicar
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Inputs ocultos */}
