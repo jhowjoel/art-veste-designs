@@ -17,6 +17,7 @@ import NotFound from "./pages/NotFound";
 import ThankYou from "./pages/ThankYou";
 import VectorSubcategories from "./pages/VectorSubcategories";
 import { CartProvider } from "@/hooks/useCart";
+import { SubscriptionProvider } from "@/hooks/useSubscription";
 
 const queryClient = new QueryClient();
 
@@ -26,8 +27,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
-        <CartProvider>
-          <BrowserRouter>
+        <SubscriptionProvider>
+          <CartProvider>
+            <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
@@ -55,7 +57,8 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </CartProvider>
-      </AuthProvider>
+      </SubscriptionProvider>
+    </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

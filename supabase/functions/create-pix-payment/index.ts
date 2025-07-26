@@ -46,6 +46,8 @@ serve(async (req) => {
     }
 
     const { productId, amount, paymentMethod }: PaymentRequest = await req.json();
+    
+    console.log("5. Dados recebidos:", { productId, amount, paymentMethod });
 
     // Create order in database
     const supabaseService = createClient(
@@ -67,14 +69,29 @@ serve(async (req) => {
 
     if (orderError) throw orderError;
 
-    // Add product to order items
-    await supabaseService
-      .from("order_items")
-      .insert({
-        order_id: order.id,
-        product_id: productId,
-        price: amount
-      });
+    // Handle subscription products
+    if (productId === "subscription-monthly") {
+      console.log("6. Criando assinatura mensal");
+      await supabaseService
+        .from("subscriptions")
+        .insert({
+          user_id: user.id,
+          plan_type: "monthly",
+          status: "pending",
+          amount: amount,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+    } else {
+      // Add product to order items for regular products
+      await supabaseService
+        .from("order_items")
+        .insert({
+          order_id: order.id,
+          product_id: productId,
+          price: amount
+        });
+    }
 
     // Create PIX payment using real Mercado Pago API
     if (paymentMethod === 'pix') {

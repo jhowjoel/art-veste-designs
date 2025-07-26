@@ -69,6 +69,42 @@ serve(async (req) => {
           paid_at: new Date().toISOString()
         })
         .eq("payment_id", payment_id);
+        
+      // Check if this is a subscription payment and activate it
+      const { data: order } = await supabaseService
+        .from("orders")
+        .select("*")
+        .eq("payment_id", payment_id)
+        .single();
+        
+      if (order) {
+        const { data: subscription } = await supabaseService
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", order.user_id)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+          
+        if (subscription) {
+          console.log("8. Ativando assinatura");
+          const startDate = new Date();
+          const endDate = new Date();
+          endDate.setMonth(endDate.getMonth() + 1); // 1 mês de assinatura
+          
+          await supabaseService
+            .from("subscriptions")
+            .update({
+              status: "active",
+              start_date: startDate.toISOString(),
+              end_date: endDate.toISOString(),
+              payment_id: payment_id,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", subscription.id);
+        }
+      }
     }
 
     return new Response(JSON.stringify({

@@ -27,6 +27,8 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSubscription } from "@/hooks/useSubscription";
+import PaidPlanModal from "./PaidPlanModal";
 
 // Configure transformers.js
 env.allowLocalModels = false;
@@ -39,6 +41,8 @@ interface ImageEditorProps {
 const MAX_IMAGE_DIMENSION = 1024;
 
 export const ImageEditor = ({ className }: ImageEditorProps) => {
+  const { hasActiveSubscription } = useSubscription();
+  const [showPaidPlanModal, setShowPaidPlanModal] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
   const [activeColor, setActiveColor] = useState("#000000");
@@ -368,6 +372,11 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
   };
 
   const handleDownload = () => {
+    if (!hasActiveSubscription) {
+      setShowPaidPlanModal(true);
+      return;
+    }
+    
     if (!fabricCanvas) return;
     
     const dataURL = fabricCanvas.toDataURL({
@@ -677,9 +686,15 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setShowPathPanel(!showPathPanel)}
+          onClick={() => {
+            if (!hasActiveSubscription) {
+              setShowPaidPlanModal(true);
+              return;
+            }
+            setShowPathPanel(!showPathPanel);
+          }}
           className={`text-white hover:bg-gray-800 ${showPathPanel ? "bg-gray-700" : ""}`}
-          title="Caminho"
+          title="Caminho - Ferramenta Premium"
         >
           <GitBranch className="h-5 w-5" />
         </Button>
@@ -1327,6 +1342,11 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
         type="file"
         accept="image/*"
         className="hidden"
+      />
+      
+      <PaidPlanModal 
+        isOpen={showPaidPlanModal} 
+        onClose={() => setShowPaidPlanModal(false)} 
       />
     </div>
   );
