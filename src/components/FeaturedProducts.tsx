@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { Eye, ShoppingCart, Star } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
+import { useLanguage } from "@/contexts/LanguageContext";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Product = Tables<"products"> & {
@@ -15,6 +16,7 @@ type Product = Tables<"products"> & {
 
 export const FeaturedProducts = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["featured-products"],
@@ -42,7 +44,7 @@ export const FeaturedProducts = () => {
       <section className="py-16 px-4 bg-art-bg">
         <div className="container mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12 font-heading">
-            Produtos em Destaque
+            {t('featured.title')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
@@ -70,7 +72,7 @@ export const FeaturedProducts = () => {
     <section className="py-16 px-4 bg-art-bg">
       <div className="container mx-auto">
         <h2 className="text-3xl font-bold text-center mb-12 font-heading">
-          Produtos em Destaque
+          {t('featured.title')}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {products.map((product) => (
@@ -85,7 +87,7 @@ export const FeaturedProducts = () => {
                 </div>
                 <Badge className="absolute top-2 left-2">
                   <Star className="h-3 w-3 mr-1 fill-current" />
-                  Destaque
+                  {t('featured.featured')}
                 </Badge>
               </CardHeader>
               
@@ -109,7 +111,7 @@ export const FeaturedProducts = () => {
                   className="flex-1"
                 >
                   <Eye className="h-4 w-4 mr-2" />
-                  Ver
+                  {t('featured.view')}
                 </Button>
                 <Button 
                   size="sm" 
@@ -124,7 +126,7 @@ export const FeaturedProducts = () => {
                   })}
                 >
                   <ShoppingCart className="h-4 w-4 mr-2" />
-                  Adicionar
+                  {t('featured.add')}
                 </Button>
               </CardFooter>
             </Card>
@@ -135,7 +137,7 @@ export const FeaturedProducts = () => {
             onClick={() => navigate("/catalog")}
             size="lg"
           >
-            Ver Todo o Catálogo
+            {t('featured.viewAll')}
           </Button>
         </div>
       </div>

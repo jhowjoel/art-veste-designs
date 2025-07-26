@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface PaidPlanModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ interface PixPaymentData {
 
 const PaidPlanModal = ({ isOpen, onClose }: PaidPlanModalProps) => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [pixData, setPixData] = useState<PixPaymentData | null>(null);
@@ -34,7 +36,7 @@ const PaidPlanModal = ({ isOpen, onClose }: PaidPlanModalProps) => {
 
   const handlePayment = async () => {
     if (!user) {
-      toast.error("Você precisa estar logado para assinar o plano");
+      toast.error(t('premium.loginRequired') || "Você precisa estar logado para assinar o plano");
       return;
     }
 

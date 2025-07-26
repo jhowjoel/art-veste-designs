@@ -4,17 +4,19 @@ import { ArrowRight, Download, Palette } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const Hero = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   function handleCreateAccount() {
     if (user) {
       toast({
-        title: "Você já possui uma conta ativa!",
-        description: "Para acessar recursos exclusivos, utilize o menu 'Minha Conta'. Caso deseje criar uma nova conta, faça logout primeiro.",
+        title: t('hero.accountExists'),
+        description: t('hero.accountExistsDesc'),
         variant: "custom-black"
       });
       return;
@@ -33,12 +35,10 @@ export const Hero = () => {
             </h1>
           </div>
           <p className="text-xl md:text-2xl text-muted-foreground mb-8">
-            Designs únicos em SVG para suas criações
+            {t('hero.title')}
           </p>
           <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Descubra nossa coleção exclusiva de artes vetoriais para estampas, 
-            canecas, camisetas e muito mais. Qualidade profissional, 
-            uso comercial liberado.
+            {t('hero.subtitle')}
           </p>
         </div>
 
@@ -48,7 +48,7 @@ export const Hero = () => {
             onClick={() => navigate("/catalog")}
             className="text-lg px-8 py-6"
           >
-            Ver Catálogo
+            {t('hero.cta')}
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
           <Button 
@@ -58,7 +58,7 @@ export const Hero = () => {
             className="text-lg px-8 py-6"
           >
             <Download className="mr-2 h-5 w-5" />
-            Criar Conta Grátis
+            {t('hero.createAccount')}
           </Button>
         </div>
 
@@ -67,9 +67,9 @@ export const Hero = () => {
             <div className="w-16 h-16 bg-art-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <Palette className="h-8 w-8 text-art-primary" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Designs Únicos</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('hero.feature1.title')}</h3>
             <p className="text-muted-foreground">
-              Artes exclusivas criadas por designers profissionais
+              {t('hero.feature1.description')}
             </p>
           </div>
           
@@ -77,9 +77,9 @@ export const Hero = () => {
             <div className="w-16 h-16 bg-art-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <Download className="h-8 w-8 text-art-primary" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Download Imediato</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('hero.feature2.title')}</h3>
             <p className="text-muted-foreground">
-              Baixe seus arquivos SVG logo após a compra
+              {t('hero.feature2.description')}
             </p>
           </div>
           
@@ -87,9 +87,9 @@ export const Hero = () => {
             <div className="w-16 h-16 bg-art-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <ArrowRight className="h-8 w-8 text-art-primary" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Uso Comercial</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('hero.feature3.title')}</h3>
             <p className="text-muted-foreground">
-              Licença para uso em produtos físicos e digitais
+              {t('hero.feature3.description')}
             </p>
           </div>
         </div>

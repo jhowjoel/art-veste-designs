@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { 
   Palette, 
   Quote, 
@@ -30,6 +31,7 @@ const iconMap: { [key: string]: any } = {
 
 export const Categories = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const { data: categories, isLoading } = useQuery({
     queryKey: ["categories"],
@@ -49,7 +51,7 @@ export const Categories = () => {
       <section className="py-16 px-4">
         <div className="container mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12 font-heading">
-            Categorias
+            {t('categories.loading')}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[...Array(8)].map((_, i) => (
@@ -70,7 +72,7 @@ export const Categories = () => {
     <section id="categorias" className="py-16 px-4 bg-white">
       <div className="container mx-auto">
         <h2 className="text-3xl font-bold text-center mb-12 font-heading">
-          Explore por Categoria
+          {t('categories.title')}
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {categories?.map((category) => {
@@ -106,7 +108,7 @@ export const Categories = () => {
             variant="outline"
             size="lg"
           >
-            Ver Todas as Categorias
+            {t('categories.viewAll')}
           </Button>
         </div>
       </div>

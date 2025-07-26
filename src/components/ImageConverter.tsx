@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const formats = [
   { label: 'PNG', value: 'image/png' },
@@ -32,6 +33,7 @@ export const ImageConverter: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -52,7 +54,7 @@ export const ImageConverter: React.FC = () => {
     setError(null);
     try {
       if (outputType === 'image/svg+xml' && file.type !== 'image/svg+xml') {
-        setError('Não é possível converter para SVG a partir de outros formatos.');
+        setError(t('converter.errorSvg'));
         setLoading(false);
         return;
       }
@@ -81,12 +83,12 @@ export const ImageConverter: React.FC = () => {
               setLoading(false);
             }, 'image/x-icon');
           } else {
-            setError('Erro ao processar a imagem.');
+            setError(t('converter.errorProcessing'));
             setLoading(false);
           }
         };
         img.onerror = () => {
-          setError('Erro ao carregar a imagem.');
+          setError(t('converter.errorLoading'));
           setLoading(false);
         };
         return;
@@ -114,23 +116,23 @@ export const ImageConverter: React.FC = () => {
             setLoading(false);
           }, outputType);
         } else {
-          setError('Erro ao processar a imagem.');
+          setError(t('converter.errorProcessing'));
           setLoading(false);
         }
       };
       img.onerror = () => {
-        setError('Erro ao carregar a imagem.');
+        setError(t('converter.errorLoading'));
         setLoading(false);
       };
     } catch (err) {
-      setError('Erro ao converter a imagem.');
+      setError(t('converter.errorConverting'));
       setLoading(false);
     }
   };
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xs flex flex-col items-center min-h-[420px] justify-center">
-      <div className="mb-2 text-art-primary font-bold text-lg text-center">Converta sua imagem grátis!</div>
+      <div className="mb-2 text-art-primary font-bold text-lg text-center">{t('converter.title')}</div>
       <div
         className="w-full h-32 border-2 border-dashed border-art-primary rounded flex items-center justify-center cursor-pointer bg-art-bg mb-2"
         onDrop={handleDrop}
@@ -140,7 +142,7 @@ export const ImageConverter: React.FC = () => {
         {preview ? (
           <img src={preview} alt="preview" className="max-h-28 max-w-full object-contain" />
         ) : (
-          <span className="text-gray-500">Arraste ou clique para selecionar</span>
+          <span className="text-gray-500">{t('converter.dragDrop')}</span>
         )}
       </div>
       <input
@@ -153,7 +155,7 @@ export const ImageConverter: React.FC = () => {
         }}
       />
       <div className="w-full mb-2">
-        <label className="block text-sm font-medium mb-1">Formato de saída:</label>
+        <label className="block text-sm font-medium mb-1">{t('converter.outputFormat')}</label>
         <select
           className="w-full border rounded p-1"
           value={outputType}
@@ -169,13 +171,13 @@ export const ImageConverter: React.FC = () => {
         onClick={handleConvert}
         disabled={!file || loading}
       >
-        {loading ? 'Convertendo...' : 'Converter e Baixar'}
+        {loading ? t('converter.converting') : t('converter.convert')}
       </button>
       {error && <div className="text-red-600 text-sm mt-2">{error}</div>}
       <div className="text-xs text-gray-500 mt-2 text-center">
-        Suporte: PNG, JPG, WEBP, GIF, BMP, TIFF, ICO<br/>
-        Para SVG, só é possível converter SVG para outros formatos.<br/>
-        Para ICO, o ícone gerado é 64x64 pixels (ideal para favicon).
+        {t('converter.supportedFormats')}<br/>
+        {t('converter.help1')}<br/>
+        {t('converter.help2')}
       </div>
     </div>
   );

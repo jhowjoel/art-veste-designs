@@ -7,9 +7,11 @@ import { useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogAction, AlertDialogCancel, AlertDialogTitle, AlertDialogDescription } from "@/components/ui/alert-dialog";
 import { Trash2 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const Footer = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [showAdminForm, setShowAdminForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
@@ -183,8 +185,7 @@ export const Footer = () => {
               <span className="text-2xl font-bold font-heading">Art</span>
             </div>
             <p className="text-gray-300 mb-4 max-w-md">
-              Designs únicos em SVG para suas criações. Qualidade profissional 
-              com uso comercial liberado.
+              {t('footer.description')}
             </p>
             <div className="flex gap-4">
               <a href="#" className="text-gray-400 hover:text-art-primary transition-colors">
@@ -204,26 +205,26 @@ export const Footer = () => {
 
           {/* Links rápidos */}
           <div>
-            <h3 className="font-semibold mb-4">Links Rápidos</h3>
+            <h3 className="font-semibold mb-4">{t('footer.quickLinks')}</h3>
             <ul className="space-y-2">
               <li>
                 <Link to="/catalog" className="text-gray-300 hover:text-art-primary transition-colors">
-                  Catálogo
+                  {t('footer.catalog')}
                 </Link>
               </li>
               <li>
                 <Link to="/auth" className="text-gray-300 hover:text-art-primary transition-colors">
-                  Login
+                  {t('footer.login')}
                 </Link>
               </li>
               <li>
                 <Link to="/cart" className="text-gray-300 hover:text-art-primary transition-colors">
-                  Carrinho
+                  {t('footer.cart')}
                 </Link>
               </li>
               <li>
                 <Link to="/profile" className="text-gray-300 hover:text-art-primary transition-colors">
-                  Minha Conta
+                  {t('footer.myAccount')}
                 </Link>
               </li>
             </ul>
@@ -231,26 +232,26 @@ export const Footer = () => {
 
           {/* Suporte */}
           <div>
-            <h3 className="font-semibold mb-4">Suporte</h3>
+            <h3 className="font-semibold mb-4">{t('footer.support')}</h3>
             <ul className="space-y-2">
               <li>
                 <a href="#" className="text-gray-300 hover:text-art-primary transition-colors">
-                  Como comprar
+                  {t('footer.howToBuy')}
                 </a>
               </li>
               <li>
                 <a href="#" className="text-gray-300 hover:text-art-primary transition-colors">
-                  Termos de uso
+                  {t('footer.terms')}
                 </a>
               </li>
               <li>
                 <a href="#" className="text-gray-300 hover:text-art-primary transition-colors">
-                  Política de privacidade
+                  {t('footer.privacy')}
                 </a>
               </li>
               <li>
                 <a href="#" className="text-gray-300 hover:text-art-primary transition-colors">
-                  Contato
+                  {t('footer.contact')}
                 </a>
               </li>
             </ul>
@@ -258,7 +259,7 @@ export const Footer = () => {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; 2024 Art. Todos os direitos reservados.</p>
+          <p>&copy; 2024 Art. {t('footer.allRightsReserved')}</p>
           {user?.email === "jota100clock@gmail.com" && (
             <button
               className="ml-4 px-4 py-2 bg-art-primary text-white rounded hover:bg-art-primary/80 transition-colors"
