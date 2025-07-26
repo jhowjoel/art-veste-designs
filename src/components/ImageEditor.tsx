@@ -50,6 +50,7 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
   const [originalImage, setOriginalImage] = useState<FabricImage | null>(null);
   const [vectorizedImage, setVectorizedImage] = useState<FabricImage | null>(null);
   const [showImageComparison, setShowImageComparison] = useState(false);
+  const [isRealTimeMode, setIsRealTimeMode] = useState(false);
   
   // Estados para Varredura Única
   const [singleScanSettings, setSingleScanSettings] = useState({
@@ -144,6 +145,7 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
       fabricCanvas.freeDrawingBrush.width = 2;
     }
   }, [activeTool, activeColor, fabricCanvas]);
+
 
   const resizeImageIfNeeded = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, image: HTMLImageElement) => {
     let width = image.naturalWidth;
@@ -397,6 +399,80 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
 
   const colors = ["#000000", "#ff0000", "#0000ff"];
 
+  const applyVectorization = useCallback(async (traceType: string, settings: any) => {
+    if (!vectorizedImage || !fabricCanvas) return;
+
+    try {
+      const imgElement = originalImage?.getElement() as HTMLImageElement;
+      if (!imgElement) return;
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) throw new Error('Could not get canvas context');
+      
+      canvas.width = imgElement.naturalWidth;
+      canvas.height = imgElement.naturalHeight;
+      ctx.drawImage(imgElement, 0, 0);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Aplicar configurações baseadas no tipo de trace e settings
+      let posterizationFactor = 64;
+      
+      if (traceType === "single") {
+        posterizationFactor = Math.max(16, 256 - settings.brightnessThreshold[0]);
+      } else if (traceType === "multi") {
+        posterizationFactor = Math.max(8, 128 / settings.colors[0]);
+      } else if (traceType === "pixel") {
+        posterizationFactor = Math.max(4, 64 / settings.colors[0]);
+      }
+      
+      // Aplicar posterização com base nas configurações
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = Math.round(data[i] / posterizationFactor) * posterizationFactor;
+        data[i + 1] = Math.round(data[i + 1] / posterizationFactor) * posterizationFactor;
+        data[i + 2] = Math.round(data[i + 2] / posterizationFactor) * posterizationFactor;
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      
+      // Atualizar a imagem vetorizada existente
+      const newImgElement = new Image();
+      newImgElement.onload = () => {
+        vectorizedImage.setElement(newImgElement);
+        fabricCanvas.renderAll();
+      };
+      
+      newImgElement.src = canvas.toDataURL();
+      
+    } catch (error) {
+      console.error('Error applying real-time vectorization:', error);
+    }
+  }, [vectorizedImage, originalImage, fabricCanvas]);
+
+  // Efeito para aplicar mudanças em tempo real - Varredura Única
+  useEffect(() => {
+    if (isRealTimeMode && traceActiveTab === "single") {
+      applyVectorization("single", singleScanSettings);
+    }
+  }, [isRealTimeMode, traceActiveTab, singleScanSettings, applyVectorization]);
+
+  // Efeito para aplicar mudanças em tempo real - Multi Colorido
+  useEffect(() => {
+    if (isRealTimeMode && traceActiveTab === "multi") {
+      applyVectorization("multi", multiColorSettings);
+    }
+  }, [isRealTimeMode, traceActiveTab, multiColorSettings, applyVectorization]);
+
+  // Efeito para aplicar mudanças em tempo real - Arte Pixel
+  useEffect(() => {
+    if (isRealTimeMode && traceActiveTab === "pixel") {
+      applyVectorization("pixel", pixelArtSettings);
+    }
+  }, [isRealTimeMode, traceActiveTab, pixelArtSettings, applyVectorization]);
+
   const handleApplyTrace = async (traceType: string) => {
     const activeObject = fabricCanvas?.getActiveObject();
     if (!activeObject || !(activeObject instanceof FabricImage)) {
@@ -449,6 +525,7 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
         setOriginalImage(activeObject);
         setVectorizedImage(vectorizedFabricImg);
         setShowImageComparison(true);
+        setIsRealTimeMode(true); // Ativar modo tempo real
         
         // Adicionar a imagem vetorizada ao canvas
         fabricCanvas?.add(vectorizedFabricImg);
@@ -456,7 +533,7 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
         
         toast({
           title: `${traceType === "single" ? "Varredura Única" : traceType === "multi" ? "Multi Colorido" : "Arte Pixel"} aplicada`,
-          description: "Imagem vetorizada criada! Escolha qual versão manter.",
+          description: "Imagem vetorizada criada! Ajuste as configurações para ver mudanças em tempo real.",
         });
       };
       
@@ -482,9 +559,10 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
       setVectorizedImage(null);
     }
     
-    // Se apenas uma imagem resta, ocultar o painel de comparação
+    // Se apenas uma imagem resta, ocultar o painel de comparação e desativar modo tempo real
     if (!originalImage || !vectorizedImage) {
       setShowImageComparison(false);
+      setIsRealTimeMode(false);
     }
     
     fabricCanvas?.renderAll();
