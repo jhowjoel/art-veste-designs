@@ -47,6 +47,9 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
   const [showPathPanel, setShowPathPanel] = useState(false);
   const [pathActiveTab, setPathActiveTab] = useState("trace");
   const [traceActiveTab, setTraceActiveTab] = useState("single");
+  const [originalImage, setOriginalImage] = useState<FabricImage | null>(null);
+  const [vectorizedImage, setVectorizedImage] = useState<FabricImage | null>(null);
+  const [showImageComparison, setShowImageComparison] = useState(false);
   
   // Estados para Varredura Única
   const [singleScanSettings, setSingleScanSettings] = useState({
@@ -394,6 +397,103 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
 
   const colors = ["#000000", "#ff0000", "#0000ff"];
 
+  const handleApplyTrace = async (traceType: string) => {
+    const activeObject = fabricCanvas?.getActiveObject();
+    if (!activeObject || !(activeObject instanceof FabricImage)) {
+      toast({
+        title: "Seleção necessária",
+        description: "Selecione uma imagem para vetorizar",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      
+      // Simular vetorização criando uma cópia modificada da imagem
+      const imgElement = activeObject.getElement() as HTMLImageElement;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) throw new Error('Could not get canvas context');
+      
+      canvas.width = imgElement.naturalWidth;
+      canvas.height = imgElement.naturalHeight;
+      ctx.drawImage(imgElement, 0, 0);
+      
+      // Aplicar filtro para simular vetorização
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Aplicar posterização para simular vetorização
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = Math.round(data[i] / 64) * 64;     // Red
+        data[i + 1] = Math.round(data[i + 1] / 64) * 64; // Green
+        data[i + 2] = Math.round(data[i + 2] / 64) * 64; // Blue
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      
+      // Criar nova imagem "vetorizada"
+      const vectorizedImgElement = new Image();
+      vectorizedImgElement.onload = () => {
+        const vectorizedFabricImg = new FabricImage(vectorizedImgElement, {
+          left: activeObject.left! + 50,
+          top: activeObject.top,
+          scaleX: activeObject.scaleX,
+          scaleY: activeObject.scaleY,
+        });
+        
+        // Armazenar as imagens para comparação
+        setOriginalImage(activeObject);
+        setVectorizedImage(vectorizedFabricImg);
+        setShowImageComparison(true);
+        
+        // Adicionar a imagem vetorizada ao canvas
+        fabricCanvas?.add(vectorizedFabricImg);
+        fabricCanvas?.renderAll();
+        
+        toast({
+          title: `${traceType === "single" ? "Varredura Única" : traceType === "multi" ? "Multi Colorido" : "Arte Pixel"} aplicada`,
+          description: "Imagem vetorizada criada! Escolha qual versão manter.",
+        });
+      };
+      
+      vectorizedImgElement.src = canvas.toDataURL();
+      
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao processar vetorização",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeleteImage = (imageType: 'original' | 'vectorized') => {
+    if (imageType === 'original' && originalImage) {
+      fabricCanvas?.remove(originalImage);
+      setOriginalImage(null);
+    } else if (imageType === 'vectorized' && vectorizedImage) {
+      fabricCanvas?.remove(vectorizedImage);
+      setVectorizedImage(null);
+    }
+    
+    // Se apenas uma imagem resta, ocultar o painel de comparação
+    if (!originalImage || !vectorizedImage) {
+      setShowImageComparison(false);
+    }
+    
+    fabricCanvas?.renderAll();
+    toast({
+      title: "Imagem removida",
+      description: `Imagem ${imageType === 'original' ? 'original' : 'vetorizada'} removida`,
+    });
+  };
+
   return (
     <div className={`flex flex-col h-screen ${className}`}>
       {/* Título */}
@@ -702,12 +802,7 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
                       </div>
 
                       <Button 
-                        onClick={() => {
-                          toast({
-                            title: "Aplicando Varredura Única",
-                            description: "Processando vetorização...",
-                          });
-                        }}
+                        onClick={() => handleApplyTrace("single")}
                         className="w-full bg-blue-600 hover:bg-blue-700"
                       >
                         Aplicar
@@ -833,12 +928,7 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
                       </div>
 
                       <Button 
-                        onClick={() => {
-                          toast({
-                            title: "Aplicando Multi Colorido",
-                            description: "Processando vetorização...",
-                          });
-                        }}
+                        onClick={() => handleApplyTrace("multi")}
                         className="w-full bg-blue-600 hover:bg-blue-700"
                       >
                         Aplicar
@@ -970,13 +1060,8 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
                         </div>
                       </div>
 
-                      <Button 
-                        onClick={() => {
-                          toast({
-                            title: "Aplicando Arte Pixel",
-                            description: "Processando vetorização...",
-                          });
-                        }}
+                       <Button 
+                        onClick={() => handleApplyTrace("pixel")}
                         className="w-full bg-blue-600 hover:bg-blue-700"
                       >
                         Aplicar
@@ -1092,6 +1177,60 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
                 </TabsContent>
               </Tabs>
             </div>
+          </div>
+        )}
+
+        {/* Painel de Comparação de Imagens */}
+        {showImageComparison && (originalImage || vectorizedImage) && (
+          <div className="w-80 bg-white border-l border-gray-200 p-4">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Comparação de Imagens</h3>
+              <p className="text-sm text-gray-600">Escolha qual versão manter:</p>
+            </div>
+            
+            <div className="space-y-4">
+              {originalImage && (
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <h4 className="font-medium text-gray-700 mb-2">Imagem Original</h4>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Versão não modificada</span>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteImage('original')}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Deletar
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              {vectorizedImage && (
+                <div className="border rounded-lg p-4 bg-blue-50">
+                  <h4 className="font-medium text-gray-700 mb-2">Imagem Vetorizada</h4>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Versão processada</span>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteImage('vectorized')}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Deletar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <Button
+              onClick={() => setShowImageComparison(false)}
+              className="w-full mt-4"
+              variant="outline"
+            >
+              Fechar Comparação
+            </Button>
           </div>
         )}
       </div>
