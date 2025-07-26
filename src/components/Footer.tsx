@@ -209,22 +209,22 @@ export const Footer = () => {
             <ul className="space-y-2">
               <li>
                 <Link to="/catalog" className="text-gray-300 hover:text-art-primary transition-colors">
-                  {t('footer.catalog')}
+                  Catálogo
                 </Link>
               </li>
               <li>
                 <Link to="/auth" className="text-gray-300 hover:text-art-primary transition-colors">
-                  {t('footer.login')}
+                  Login
                 </Link>
               </li>
               <li>
                 <Link to="/cart" className="text-gray-300 hover:text-art-primary transition-colors">
-                  {t('footer.cart')}
+                  Carrinho
                 </Link>
               </li>
               <li>
-                <Link to="/profile" className="text-gray-300 hover:text-art-primary transition-colors">
-                  {t('footer.myAccount')}
+                <Link to={user ? "/profile" : "/auth"} className="text-gray-300 hover:text-art-primary transition-colors">
+                  Minha conta
                 </Link>
               </li>
             </ul>
@@ -235,24 +235,24 @@ export const Footer = () => {
             <h3 className="font-semibold mb-4">{t('footer.support')}</h3>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-gray-300 hover:text-art-primary transition-colors">
-                  {t('footer.howToBuy')}
-                </a>
+                <Link to="/how-to-buy" className="text-gray-300 hover:text-art-primary transition-colors">
+                  Como comprar
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-300 hover:text-art-primary transition-colors">
-                  {t('footer.terms')}
-                </a>
+                <Link to="/terms" className="text-gray-300 hover:text-art-primary transition-colors">
+                  Termos de uso
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-300 hover:text-art-primary transition-colors">
-                  {t('footer.privacy')}
-                </a>
+                <Link to="/privacy" className="text-gray-300 hover:text-art-primary transition-colors">
+                  Política de privacidade
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-300 hover:text-art-primary transition-colors">
-                  {t('footer.contact')}
-                </a>
+                <Link to="/contact" className="text-gray-300 hover:text-art-primary transition-colors">
+                  Contato
+                </Link>
               </li>
             </ul>
           </div>
