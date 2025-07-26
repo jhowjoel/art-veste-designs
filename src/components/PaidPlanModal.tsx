@@ -30,6 +30,7 @@ const PaidPlanModal = ({ isOpen, onClose }: PaidPlanModalProps) => {
   const [showPayment, setShowPayment] = useState(false);
   const [pixData, setPixData] = useState<PixPaymentData | null>(null);
   const [timeLeft, setTimeLeft] = useState(1800); // 30 minutos
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'pix' | 'credit_card'>('pix');
 
   const handlePayment = async () => {
     if (!user) {
@@ -43,28 +44,34 @@ const PaidPlanModal = ({ isOpen, onClose }: PaidPlanModalProps) => {
         body: {
           productId: "subscription-monthly",
           amount: 1790, // R$ 17,90 em centavos
-          paymentMethod: "pix"
+          paymentMethod: selectedPaymentMethod
         }
       });
 
       if (error) throw error;
 
-      setPixData(data);
-      setShowPayment(true);
-      
-      // Iniciar countdown
-      const interval = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            setShowPayment(false);
-            setPixData(null);
-            toast.error("Tempo para pagamento expirado");
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      if (selectedPaymentMethod === 'pix') {
+        setPixData(data);
+        setShowPayment(true);
+        
+        // Iniciar countdown
+        const interval = setInterval(() => {
+          setTimeLeft(prev => {
+            if (prev <= 1) {
+              clearInterval(interval);
+              setShowPayment(false);
+              setPixData(null);
+              toast.error("Tempo para pagamento expirado");
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        // Redirecionar para pagamento com cartão
+        window.open(data.credit_card.payment_url, '_blank');
+        onClose();
+      }
 
     } catch (error: any) {
       console.error("Payment error:", error);
@@ -218,10 +225,35 @@ const PaidPlanModal = ({ isOpen, onClose }: PaidPlanModalProps) => {
             </ul>
           </div>
 
-          <div className="text-center space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Pagamento seguro via PIX • Ativação automática • Cancele quando quiser
-            </p>
+          <div className="space-y-4">
+            <div className="text-center">
+              <h4 className="font-medium mb-3">Escolha a forma de pagamento:</h4>
+              <div className="flex gap-2 justify-center">
+                <Button
+                  variant={selectedPaymentMethod === 'pix' ? 'default' : 'outline'}
+                  onClick={() => setSelectedPaymentMethod('pix')}
+                  className="flex-1 max-w-40"
+                >
+                  PIX
+                </Button>
+                <Button
+                  variant={selectedPaymentMethod === 'credit_card' ? 'default' : 'outline'}
+                  onClick={() => setSelectedPaymentMethod('credit_card')}
+                  className="flex-1 max-w-40"
+                >
+                  Cartão
+                </Button>
+              </div>
+            </div>
+
+            <div className="text-center space-y-2">
+              <p className="text-sm text-muted-foreground">
+                {selectedPaymentMethod === 'pix' 
+                  ? "Pagamento instantâneo via PIX • Ativação automática"
+                  : "Cartão de crédito ou débito • Parcele em até 3x"
+                } • Cancele quando quiser
+              </p>
+            </div>
           </div>
 
           <div className="flex gap-3">
@@ -233,7 +265,7 @@ const PaidPlanModal = ({ isOpen, onClose }: PaidPlanModalProps) => {
               disabled={loading}
               className="flex-1"
             >
-              {loading ? "Gerando pagamento..." : "Pagar R$ 17,90"}
+              {loading ? "Processando..." : `Pagar R$ 17,90 via ${selectedPaymentMethod === 'pix' ? 'PIX' : 'Cartão'}`}
             </Button>
           </div>
         </div>
