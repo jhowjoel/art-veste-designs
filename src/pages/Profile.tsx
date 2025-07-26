@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Download, User, ShoppingBag, Settings, LogOut, Wrench, Camera, Upload } from "lucide-react";
 import { ImageEditor } from "@/components/ImageEditor";
+import { PerformanceDashboard } from "@/components/PerformanceDashboard";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -245,7 +246,7 @@ const Profile = () => {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6" onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className={`grid w-full ${user?.email === 'jota100clock@gmail.com' ? 'grid-cols-6' : 'grid-cols-5'}`}>
             <TabsTrigger value="profile">
               <User className="h-4 w-4 mr-2" />
               Perfil
@@ -262,6 +263,12 @@ const Profile = () => {
               <Wrench className="h-4 w-4 mr-2" />
               Ferramentas
             </TabsTrigger>
+            {user?.email === 'jota100clock@gmail.com' && (
+              <TabsTrigger value="performance">
+                <Settings className="h-4 w-4 mr-2" />
+                Desempenho
+              </TabsTrigger>
+            )}
             <TabsTrigger value="settings">
               <Settings className="h-4 w-4 mr-2" />
               Configurações
@@ -425,6 +432,12 @@ const Profile = () => {
               <ImageEditor />
             </div>
           </TabsContent>
+
+          {user?.email === 'jota100clock@gmail.com' && (
+            <TabsContent value="performance">
+              <PerformanceDashboard />
+            </TabsContent>
+          )}
 
           <TabsContent value="settings">
             <Card>
