@@ -216,6 +216,12 @@ const Profile = () => {
   };
 
   const handleToolAccess = async () => {
+    // Email de manutenção tem acesso ilimitado
+    if (user?.email === 'jota100clock@gmail.com') {
+      setActiveTab("tools");
+      return;
+    }
+
     // Se tem assinatura ativa, permite acesso
     if (hasActiveSubscription) {
       setActiveTab("tools");
@@ -314,10 +320,10 @@ const Profile = () => {
             <TabsTrigger value="tools" className="relative">
               <Wrench className="h-4 w-4 mr-2" />
               Ferramentas
-              {!hasActiveSubscription && (profile?.free_tool_uses || 0) >= 1 && (
+              {user?.email !== 'jota100clock@gmail.com' && !hasActiveSubscription && (profile?.free_tool_uses || 0) >= 1 && (
                 <Lock className="h-3 w-3 ml-1 text-muted-foreground" />
               )}
-              {!hasActiveSubscription && (profile?.free_tool_uses || 0) === 0 && (
+              {user?.email !== 'jota100clock@gmail.com' && !hasActiveSubscription && (profile?.free_tool_uses || 0) === 0 && (
                 <Badge variant="secondary" className="ml-2 text-xs">Teste Grátis</Badge>
               )}
             </TabsTrigger>
