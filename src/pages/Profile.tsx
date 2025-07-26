@@ -30,7 +30,6 @@ const Profile = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { t } = useLanguage();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -115,6 +114,13 @@ const Profile = () => {
       setFullName(userProfile.full_name || "");
     }
   }, [userProfile]);
+
+  if (!user) {
+    return null;
+  }
+
+  // Get language context after user check
+  const { t } = useLanguage();
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,10 +229,6 @@ const Profile = () => {
     await supabase.auth.signOut();
     navigate("/");
   };
-
-  if (!user) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-art-bg">
