@@ -17,7 +17,10 @@ import {
   Trash2,
   GitBranch,
   ChevronRight,
-  Settings
+  Settings,
+  ArrowLeft,
+  Pencil,
+  Minus
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { pipeline, env } from '@huggingface/transformers';
@@ -36,11 +39,12 @@ env.useBrowserCache = false;
 
 interface ImageEditorProps {
   className?: string;
+  onBackToProfile?: () => void;
 }
 
 const MAX_IMAGE_DIMENSION = 1024;
 
-export const ImageEditor = ({ className }: ImageEditorProps) => {
+export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) => {
   const { hasActiveSubscription } = useSubscription();
   const [showPaidPlanModal, setShowPaidPlanModal] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -55,6 +59,17 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
   const [vectorizedImage, setVectorizedImage] = useState<FabricImage | null>(null);
   const [showImageComparison, setShowImageComparison] = useState(false);
   const [isRealTimeMode, setIsRealTimeMode] = useState(false);
+  
+  // Estados para modais de ferramentas
+  const [showDrawModal, setShowDrawModal] = useState(false);
+  const [showShapeModal, setShowShapeModal] = useState(false);
+  const [showBackgroundModal, setShowBackgroundModal] = useState(false);
+  const [selectedShape, setSelectedShape] = useState<"rectangle" | "circle" | null>(null);
+  const [drawMode, setDrawMode] = useState<"pencil" | "bezier" | "spiral" | "spline" | "continuous">("pencil");
+  const [shapeOptions, setShapeOptions] = useState({
+    filled: true,
+    variant: "normal" // normal, closed-two-radius, open-two-radius
+  });
   
   // Estados para Varredura Única
   const [singleScanSettings, setSingleScanSettings] = useState({
@@ -322,34 +337,78 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
   };
 
   const handleToolClick = (tool: typeof activeTool) => {
+    if (tool === "draw") {
+      setShowDrawModal(true);
+      return;
+    }
+    
+    if (tool === "rectangle" || tool === "circle") {
+      setSelectedShape(tool);
+      setShowShapeModal(true);
+      return;
+    }
+    
     setActiveTool(tool);
 
-    if (tool === "rectangle") {
-      const rect = new Rect({
-        left: 100,
-        top: 100,
-        fill: activeColor,
-        width: 100,
-        height: 100,
-      });
-      fabricCanvas?.add(rect);
-    } else if (tool === "circle") {
-      const circle = new FabricCircle({
-        left: 100,
-        top: 100,
-        fill: activeColor,
-        radius: 50,
-      });
-      fabricCanvas?.add(circle);
-    } else if (tool === "text") {
-      const text = new IText('Texto', {
+    if (tool === "text") {
+      const text = new IText('Digite seu texto aqui', {
         left: 100,
         top: 100,
         fill: activeColor,
         fontSize: 20,
       });
       fabricCanvas?.add(text);
+      fabricCanvas?.setActiveObject(text);
+      fabricCanvas?.renderAll();
     }
+  };
+
+  const handleDrawSelection = (mode: typeof drawMode) => {
+    setDrawMode(mode);
+    setActiveTool("draw");
+    setShowDrawModal(false);
+    
+    if (fabricCanvas) {
+      fabricCanvas.isDrawingMode = true;
+      if (fabricCanvas.freeDrawingBrush) {
+        fabricCanvas.freeDrawingBrush.color = activeColor;
+        fabricCanvas.freeDrawingBrush.width = mode === "pencil" ? 2 : mode === "continuous" ? 1 : 3;
+      }
+    }
+  };
+
+  const handleShapeCreation = () => {
+    if (!selectedShape || !fabricCanvas) return;
+    
+    const options = {
+      left: 100,
+      top: 100,
+      [shapeOptions.filled ? "fill" : "stroke"]: activeColor,
+      ...(shapeOptions.filled ? {} : { fill: "transparent", strokeWidth: 2 })
+    };
+
+    if (selectedShape === "rectangle") {
+      const rect = new Rect({
+        ...options,
+        width: 100,
+        height: 100,
+      });
+      fabricCanvas.add(rect);
+    } else if (selectedShape === "circle") {
+      const circle = new FabricCircle({
+        ...options,
+        radius: 50,
+      });
+      fabricCanvas.add(circle);
+    }
+    
+    fabricCanvas.renderAll();
+    setShowShapeModal(false);
+    setSelectedShape(null);
+  };
+
+  const handleBackgroundRemoval = () => {
+    setShowBackgroundModal(true);
   };
 
   const handleClear = () => {
@@ -584,8 +643,21 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
   return (
     <div className={`flex flex-col h-screen ${className}`}>
       {/* Título */}
-      <div className="bg-white border-b px-4 py-3">
-        <h2 className="text-xl font-semibold text-gray-800">Editor de Imagens</h2>
+      <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {onBackToProfile && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onBackToProfile}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar ao Perfil
+            </Button>
+          )}
+          <h2 className="text-xl font-semibold text-gray-800">Editor de Imagens</h2>
+        </div>
       </div>
       
       {/* Área principal */}
@@ -624,7 +696,7 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={handleRemoveBackground}
+          onClick={handleBackgroundRemoval}
           disabled={isProcessing}
           className="text-white hover:bg-gray-800"
           title="Remover Fundo"
@@ -1345,8 +1417,215 @@ export const ImageEditor = ({ className }: ImageEditorProps) => {
       />
       
       <PaidPlanModal 
-        isOpen={showPaidPlanModal} 
-        onClose={() => setShowPaidPlanModal(false)} 
+        isOpen={showPaidPlanModal}
+        onClose={() => setShowPaidPlanModal(false)}
+      />
+
+      {/* Modal de Desenhar */}
+      {showDrawModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-96 p-6">
+            <h3 className="text-lg font-semibold mb-4">Escolha o tipo de desenho</h3>
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => handleDrawSelection("pencil")}
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Lápis (desenho livre)
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => handleDrawSelection("bezier")}
+              >
+                <GitBranch className="h-4 w-4 mr-2" />
+                Linha Bézier (caminho curvo)
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => handleDrawSelection("spiral")}
+              >
+                <Circle className="h-4 w-4 mr-2" />
+                Espiral
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => handleDrawSelection("spline")}
+              >
+                <Move className="h-4 w-4 mr-2" />
+                B-Spline (curva suave)
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => handleDrawSelection("continuous")}
+              >
+                <Minus className="h-4 w-4 mr-2" />
+                Linhas Contínuas
+              </Button>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowDrawModal(false)}
+              className="w-full mt-4"
+            >
+              Cancelar
+            </Button>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal de Formas */}
+      {showShapeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-96 p-6">
+            <h3 className="text-lg font-semibold mb-4">
+              Opções para {selectedShape === "rectangle" ? "Retângulo" : "Círculo"}
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium">Tipo de preenchimento</Label>
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    variant={shapeOptions.filled ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setShapeOptions({...shapeOptions, filled: true})}
+                  >
+                    Preenchido
+                  </Button>
+                  <Button
+                    variant={!shapeOptions.filled ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setShapeOptions({...shapeOptions, filled: false})}
+                  >
+                    Só Contorno
+                  </Button>
+                </div>
+              </div>
+
+              {selectedShape === "circle" && (
+                <div>
+                  <Label className="text-sm font-medium">Variação da forma</Label>
+                  <div className="space-y-2 mt-2">
+                    <Button
+                      variant={shapeOptions.variant === "normal" ? "default" : "outline"}
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setShapeOptions({...shapeOptions, variant: "normal"})}
+                    >
+                      Círculo Normal
+                    </Button>
+                    <Button
+                      variant={shapeOptions.variant === "closed-two-radius" ? "default" : "outline"}
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setShapeOptions({...shapeOptions, variant: "closed-two-radius"})}
+                    >
+                      Forma Fechada com Dois Raios
+                    </Button>
+                    <Button
+                      variant={shapeOptions.variant === "open-two-radius" ? "default" : "outline"}
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setShapeOptions({...shapeOptions, variant: "open-two-radius"})}
+                    >
+                      Forma Aberta com Dois Raios
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 mt-6">
+              <Button onClick={handleShapeCreation} className="flex-1">
+                Criar {selectedShape === "rectangle" ? "Retângulo" : "Círculo"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowShapeModal(false)}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal de Remover Fundo */}
+      {showBackgroundModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-96 p-6">
+            <h3 className="text-lg font-semibold mb-4">Opções de Fundo</h3>
+            
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {
+                  handleRemoveBackground();
+                  setShowBackgroundModal(false);
+                }}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Remover Fundo Completamente
+              </Button>
+              
+              <div className="text-sm text-muted-foreground">
+                Fundos fornecidos pelo site:
+              </div>
+              
+              <div className="grid grid-cols-3 gap-2">
+                {["#ffffff", "#f0f0f0", "#e0e0e0", "#d0d0d0", "#c0c0c0", "#b0b0b0"].map((bg) => (
+                  <button
+                    key={bg}
+                    className="w-full h-12 rounded border-2 border-gray-300 hover:border-primary"
+                    style={{ backgroundColor: bg }}
+                    onClick={() => {
+                      if (fabricCanvas) {
+                        fabricCanvas.backgroundColor = bg;
+                        fabricCanvas.renderAll();
+                      }
+                      setShowBackgroundModal(false);
+                      toast({
+                        title: "Fundo alterado",
+                        description: "Fundo do canvas foi alterado!",
+                      });
+                    }}
+                    title={`Fundo ${bg}`}
+                  />
+                ))}
+              </div>
+            </div>
+            
+            <Button
+              variant="outline"
+              onClick={() => setShowBackgroundModal(false)}
+              className="w-full mt-4"
+            >
+              Cancelar
+            </Button>
+          </Card>
+        </div>
+      )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageUpload}
+        className="hidden"
+      />
+      
+      <input
+        ref={backgroundInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
       />
     </div>
   );

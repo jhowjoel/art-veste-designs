@@ -493,7 +493,7 @@ const Profile = () => {
 
           <TabsContent value="tools" className="p-0 m-0">
             <div className="fixed inset-0 z-50 bg-white">
-              <ImageEditor />
+              <ImageEditor onBackToProfile={() => setActiveTab("profile")} />
             </div>
           </TabsContent>
 
