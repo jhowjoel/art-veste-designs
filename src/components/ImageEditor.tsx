@@ -467,6 +467,187 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
 
   const colors = ["#000000", "#ff0000", "#0000ff"];
 
+  // Estados para limpeza de contorno
+  const [contourCleanSettings, setContourCleanSettings] = useState({
+    spotRemovalSize: [5],
+    contourThickness: [2],
+    backgroundCleanup: true,
+    preserveMainContours: true,
+    smoothContours: [3]
+  });
+
+  // Função para limpeza de contorno (remover manchas pretas, manter só contornos)
+  const handleContourClean = useCallback(async () => {
+    const activeObject = fabricCanvas?.getActiveObject();
+    if (!activeObject || !(activeObject instanceof FabricImage)) {
+      toast({
+        title: "Seleção necessária",
+        description: "Selecione uma imagem para limpar contornos",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const imgElement = activeObject.getElement() as HTMLImageElement;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) throw new Error('Could not get canvas context');
+      
+      canvas.width = imgElement.naturalWidth;
+      canvas.height = imgElement.naturalHeight;
+      ctx.drawImage(imgElement, 0, 0);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      const width = canvas.width;
+      const height = canvas.height;
+
+      // 1. Converter para escala de cinza
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+        data[i] = gray;
+        data[i + 1] = gray;
+        data[i + 2] = gray;
+      }
+
+      // 2. Detectar bordas principais (Sobel)
+      const edgeData = new Uint8ClampedArray(data.length);
+      for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+          const idx = (y * width + x) * 4;
+          
+          const gx = (
+            -1 * data[((y-1) * width + (x-1)) * 4] + 1 * data[((y-1) * width + (x+1)) * 4] +
+            -2 * data[(y * width + (x-1)) * 4] + 2 * data[(y * width + (x+1)) * 4] +
+            -1 * data[((y+1) * width + (x-1)) * 4] + 1 * data[((y+1) * width + (x+1)) * 4]
+          );
+          
+          const gy = (
+            -1 * data[((y-1) * width + (x-1)) * 4] + -2 * data[((y-1) * width + x) * 4] + -1 * data[((y-1) * width + (x+1)) * 4] +
+            1 * data[((y+1) * width + (x-1)) * 4] + 2 * data[((y+1) * width + x) * 4] + 1 * data[((y+1) * width + (x+1)) * 4]
+          );
+          
+          const magnitude = Math.sqrt(gx * gx + gy * gy);
+          const edge = magnitude > 40 ? 0 : 255;
+          
+          edgeData[idx] = edge;
+          edgeData[idx + 1] = edge;
+          edgeData[idx + 2] = edge;
+          edgeData[idx + 3] = 255;
+        }
+      }
+
+      // 3. Remover manchas pequenas (noise removal)
+      const cleanData = new Uint8ClampedArray(edgeData);
+      const spotSize = contourCleanSettings.spotRemovalSize[0];
+      
+      for (let y = spotSize; y < height - spotSize; y++) {
+        for (let x = spotSize; x < width - spotSize; x++) {
+          const idx = (y * width + x) * 4;
+          
+          if (edgeData[idx] === 0) { // pixel preto (parte da borda)
+            let blackNeighbors = 0;
+            let totalNeighbors = 0;
+            
+            // Verificar vizinhança
+            for (let dy = -spotSize; dy <= spotSize; dy++) {
+              for (let dx = -spotSize; dx <= spotSize; dx++) {
+                const nIdx = ((y + dy) * width + (x + dx)) * 4;
+                if (nIdx >= 0 && nIdx < edgeData.length) {
+                  totalNeighbors++;
+                  if (edgeData[nIdx] === 0) blackNeighbors++;
+                }
+              }
+            }
+            
+            // Se tem poucos vizinhos pretos, é uma mancha isolada - remover
+            if (blackNeighbors / totalNeighbors < 0.3) {
+              cleanData[idx] = 255;     // Tornar branco
+              cleanData[idx + 1] = 255;
+              cleanData[idx + 2] = 255;
+            }
+          }
+        }
+      }
+
+      // 4. Fortalecer contornos principais
+      const finalData = new Uint8ClampedArray(cleanData);
+      const thickness = contourCleanSettings.contourThickness[0];
+      
+      for (let y = thickness; y < height - thickness; y++) {
+        for (let x = thickness; x < width - thickness; x++) {
+          const idx = (y * width + x) * 4;
+          
+          if (cleanData[idx] === 0) { // pixel de borda
+            // Fortalecer a borda aumentando espessura
+            for (let dy = -thickness; dy <= thickness; dy++) {
+              for (let dx = -thickness; dx <= thickness; dx++) {
+                if (Math.abs(dx) + Math.abs(dy) <= thickness) {
+                  const nIdx = ((y + dy) * width + (x + dx)) * 4;
+                  if (nIdx >= 0 && nIdx < finalData.length) {
+                    finalData[nIdx] = 0;
+                    finalData[nIdx + 1] = 0;
+                    finalData[nIdx + 2] = 0;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // 5. Limpar fundo se habilitado
+      if (contourCleanSettings.backgroundCleanup) {
+        for (let i = 0; i < finalData.length; i += 4) {
+          if (finalData[i] > 200) { // pixel quase branco
+            finalData[i] = 255;     // Tornar completamente branco
+            finalData[i + 1] = 255;
+            finalData[i + 2] = 255;
+            finalData[i + 3] = 0;   // Tornar transparente
+          }
+        }
+      }
+
+      // Aplicar resultado
+      ctx.putImageData(new ImageData(finalData, width, height), 0, 0);
+      
+      const cleanDataURL = canvas.toDataURL('image/png');
+      const cleanImg = new Image();
+      
+      cleanImg.onload = () => {
+        const fabricImg = new FabricImage(cleanImg, {
+          left: activeObject.left! + 50,
+          top: activeObject.top!,
+          scaleX: activeObject.scaleX,
+          scaleY: activeObject.scaleY,
+        });
+        
+        fabricCanvas?.add(fabricImg);
+        fabricCanvas?.renderAll();
+        
+        toast({
+          title: "Contornos limpos",
+          description: "Manchas removidas, contornos preservados!",
+        });
+      };
+      
+      cleanImg.src = cleanDataURL;
+      
+    } catch (error) {
+      console.error('Error in contour cleaning:', error);
+      toast({
+        title: "Erro",
+        description: "Erro na limpeza de contornos",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [fabricCanvas, toast, contourCleanSettings]);
+
   // Função para vetorização automática com um clique (otimizada para corte a laser)
   const handleAutoVectorize = useCallback(async () => {
     const activeObject = fabricCanvas?.getActiveObject();
@@ -1037,6 +1218,18 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
         >
           <RotateCcw className="h-5 w-5" />
         </Button>
+
+        {/* Botão de Limpeza de Contorno */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleContourClean}
+          disabled={isProcessing}
+          className="text-white hover:bg-gray-800 bg-blue-600"
+          title="Limpar Contornos (Remover Manchas)"
+        >
+          <Minus className="h-5 w-5" />
+        </Button>
         
         <Button
           variant="ghost"
@@ -1128,9 +1321,12 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
               </div>
 
               <Tabs value={pathActiveTab} onValueChange={setPathActiveTab}>
-                <TabsList className="grid w-full grid-cols-2 bg-gray-800">
+                <TabsList className="grid w-full grid-cols-3 bg-gray-800">
                   <TabsTrigger value="trace" className="text-white data-[state=active]:bg-gray-700">
                     Traçar Bitmap
+                  </TabsTrigger>
+                  <TabsTrigger value="clean" className="text-white data-[state=active]:bg-gray-700">
+                    Limpar Contorno
                   </TabsTrigger>
                   <TabsTrigger value="fillstroke" className="text-white data-[state=active]:bg-gray-700">
                     Preenchimento
@@ -1664,10 +1860,85 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
                         Aplicar
                       </Button>
                     </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
+                    </div>
+                  </TabsContent>
+
+                  {/* Nova aba de Limpeza de Contorno */}
+                  <TabsContent value="clean" className="space-y-4">
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-white mb-2 block">Tamanho de Mancha a Remover: {contourCleanSettings.spotRemovalSize[0]}px</Label>
+                        <Slider
+                          value={contourCleanSettings.spotRemovalSize}
+                          onValueChange={(value) => setContourCleanSettings({...contourCleanSettings, spotRemovalSize: value})}
+                          min={1}
+                          max={20}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Espessura do Contorno: {contourCleanSettings.contourThickness[0]}px</Label>
+                        <Slider
+                          value={contourCleanSettings.contourThickness}
+                          onValueChange={(value) => setContourCleanSettings({...contourCleanSettings, contourThickness: value})}
+                          min={1}
+                          max={10}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-white mb-2 block">Suavização: {contourCleanSettings.smoothContours[0]}</Label>
+                        <Slider
+                          value={contourCleanSettings.smoothContours}
+                          onValueChange={(value) => setContourCleanSettings({...contourCleanSettings, smoothContours: value})}
+                          min={0}
+                          max={10}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="backgroundCleanup"
+                          checked={contourCleanSettings.backgroundCleanup}
+                          onCheckedChange={(checked) => setContourCleanSettings({...contourCleanSettings, backgroundCleanup: !!checked})}
+                        />
+                        <Label htmlFor="backgroundCleanup" className="text-white">
+                          Limpar Fundo (Transparente)
+                        </Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="preserveMainContours"
+                          checked={contourCleanSettings.preserveMainContours}
+                          onCheckedChange={(checked) => setContourCleanSettings({...contourCleanSettings, preserveMainContours: !!checked})}
+                        />
+                        <Label htmlFor="preserveMainContours" className="text-white">
+                          Preservar Contornos Principais
+                        </Label>
+                      </div>
+
+                      <Button
+                        onClick={handleContourClean}
+                        disabled={isProcessing}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                      >
+                        {isProcessing ? "Processando..." : "Limpar Contornos"}
+                      </Button>
+
+                      <div className="text-xs text-gray-400 mt-2">
+                        Esta ferramenta remove manchas pretas pequenas e preserva apenas os contornos principais da imagem, ideal para corte a laser.
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
           </div>
         )}
 
