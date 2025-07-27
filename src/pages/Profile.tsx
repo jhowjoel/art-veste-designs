@@ -39,6 +39,18 @@ const Profile = () => {
   const queryClient = useQueryClient();
   const { hasActiveSubscription } = useSubscription();
 
+  // Check URL params to set initial tab
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    if (tab === 'tools') {
+      setActiveTab('tools');
+      handleToolAccess();
+    }
+  }, []);
+
+  // Add a separate useEffect to handle tool access when tab changes to tools
+
   useEffect(() => {
     const getUser = async () => {
       try {
