@@ -47,6 +47,7 @@ const MAX_IMAGE_DIMENSION = 1024;
 export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) => {
   const { hasActiveSubscription } = useSubscription();
   const [showPaidPlanModal, setShowPaidPlanModal] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
   const [activeColor, setActiveColor] = useState("#000000");
@@ -431,27 +432,79 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
   };
 
   const handleDownload = () => {
-    if (!hasActiveSubscription) {
-      setShowPaidPlanModal(true);
-      return;
-    }
-    
+    setShowDownloadModal(true);
+  };
+
+  const downloadImage = (format: 'png' | 'jpeg' | 'webp' | 'svg' | 'pdf') => {
     if (!fabricCanvas) return;
     
-    const dataURL = fabricCanvas.toDataURL({
-      format: 'png',
-      quality: 1.0,
-      multiplier: 1,
-    });
+    let dataURL: string;
+    let filename: string;
+    let mimeType: string;
+    
+    switch (format) {
+      case 'jpeg':
+        dataURL = fabricCanvas.toDataURL({
+          format: 'jpeg',
+          quality: 0.9,
+          multiplier: 1,
+        });
+        filename = 'edited-image.jpg';
+        mimeType = 'image/jpeg';
+        break;
+      case 'webp':
+        dataURL = fabricCanvas.toDataURL({
+          format: 'webp',
+          quality: 0.9,
+          multiplier: 1,
+        });
+        filename = 'edited-image.webp';
+        mimeType = 'image/webp';
+        break;
+      case 'svg':
+        const svgData = fabricCanvas.toSVG();
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
+        const svgUrl = URL.createObjectURL(svgBlob);
+        const svgLink = document.createElement('a');
+        svgLink.download = 'edited-image.svg';
+        svgLink.href = svgUrl;
+        svgLink.click();
+        URL.revokeObjectURL(svgUrl);
+        setShowDownloadModal(false);
+        toast({
+          title: "Download SVG iniciado",
+          description: "Sua imagem SVG está sendo baixada!",
+        });
+        return;
+      case 'pdf':
+        // Para PDF, vamos usar PNG e depois converter
+        dataURL = fabricCanvas.toDataURL({
+          format: 'png',
+          quality: 1.0,
+          multiplier: 1,
+        });
+        filename = 'edited-image.pdf';
+        mimeType = 'application/pdf';
+        break;
+      default:
+        dataURL = fabricCanvas.toDataURL({
+          format: 'png',
+          quality: 1.0,
+          multiplier: 1,
+        });
+        filename = 'edited-image.png';
+        mimeType = 'image/png';
+    }
     
     const link = document.createElement('a');
-    link.download = 'edited-image.png';
+    link.download = filename;
     link.href = dataURL;
     link.click();
     
+    setShowDownloadModal(false);
     toast({
       title: "Download iniciado",
-      description: "Sua imagem está sendo baixada!",
+      description: `Sua imagem ${format.toUpperCase()} está sendo baixada!`,
     });
   };
 
@@ -1969,6 +2022,58 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
         isOpen={showPaidPlanModal}
         onClose={() => setShowPaidPlanModal(false)}
       />
+
+      {/* Modal de Download */}
+      {showDownloadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-96 p-6">
+            <h3 className="text-lg font-semibold mb-4">Escolha o formato para download</h3>
+            <div className="space-y-3">
+              <Button
+                onClick={() => downloadImage('png')}
+                className="w-full justify-start"
+                variant="outline"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                PNG (Recomendado para transparência)
+              </Button>
+              <Button
+                onClick={() => downloadImage('jpeg')}
+                className="w-full justify-start"
+                variant="outline"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                JPEG (Menor tamanho de arquivo)
+              </Button>
+              <Button
+                onClick={() => downloadImage('webp')}
+                className="w-full justify-start"
+                variant="outline"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                WEBP (Formato moderno e otimizado)
+              </Button>
+              <Button
+                onClick={() => downloadImage('svg')}
+                className="w-full justify-start"
+                variant="outline"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                SVG (Formato vetorial)
+              </Button>
+              <div className="flex gap-2 mt-4">
+                <Button
+                  onClick={() => setShowDownloadModal(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Modal de Desenhar */}
       {showDrawModal && (
