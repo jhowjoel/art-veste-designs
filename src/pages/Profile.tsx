@@ -43,11 +43,11 @@ const Profile = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const tab = urlParams.get('tab');
-    if (tab === 'tools') {
+    if (tab === 'tools' && user) {
       setActiveTab('tools');
       handleToolAccess();
     }
-  }, []);
+  }, [user]); // Add user as dependency and only run when user is available
 
   // Add a separate useEffect to handle tool access when tab changes to tools
 
