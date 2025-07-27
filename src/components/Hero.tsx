@@ -60,6 +60,15 @@ export const Hero = () => {
             <Download className="mr-2 h-5 w-5" />
             {t('hero.createAccount')}
           </Button>
+          <Button 
+            variant="secondary" 
+            size="lg"
+            onClick={() => navigate("/profile?tab=tools")}
+            className="text-lg px-8 py-6"
+          >
+            <Palette className="mr-2 h-5 w-5" />
+            Transforme imagens em vetor
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
