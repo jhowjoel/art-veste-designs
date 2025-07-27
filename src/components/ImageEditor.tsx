@@ -486,22 +486,121 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
-      // Aplicar configurações baseadas no tipo de trace e settings
-      let posterizationFactor = 64;
-      
       if (traceType === "single") {
-        posterizationFactor = Math.max(16, 256 - settings.brightnessThreshold[0]);
+        // Aplicar configurações de Varredura Única
+        const { detectionMode, brightnessThreshold, edgeDetection, colorCount, centerLineTrace, edgeThreshold, invertImage, blur } = settings;
+        
+        if (detectionMode === "brightness") {
+          // Aplicar limite de brilho
+          const threshold = brightnessThreshold[0];
+          for (let i = 0; i < data.length; i += 4) {
+            const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+            const newValue = brightness > threshold ? 255 : 0;
+            data[i] = newValue;     // Red
+            data[i + 1] = newValue; // Green
+            data[i + 2] = newValue; // Blue
+          }
+        } else if (detectionMode === "edge") {
+          // Aplicar detecção de bordas usando filtro Sobel
+          const edgeStrength = edgeDetection[0] / 100;
+          const threshold = edgeThreshold[0];
+          const tempData = new Uint8ClampedArray(data);
+          
+          for (let y = 1; y < canvas.height - 1; y++) {
+            for (let x = 1; x < canvas.width - 1; x++) {
+              const idx = (y * canvas.width + x) * 4;
+              
+              // Calcular gradiente horizontal e vertical
+              const gx = (
+                -tempData[((y-1) * canvas.width + (x-1)) * 4] + tempData[((y-1) * canvas.width + (x+1)) * 4] +
+                -2 * tempData[(y * canvas.width + (x-1)) * 4] + 2 * tempData[(y * canvas.width + (x+1)) * 4] +
+                -tempData[((y+1) * canvas.width + (x-1)) * 4] + tempData[((y+1) * canvas.width + (x+1)) * 4]
+              );
+              
+              const gy = (
+                -tempData[((y-1) * canvas.width + (x-1)) * 4] - 2 * tempData[((y-1) * canvas.width + x) * 4] - tempData[((y-1) * canvas.width + (x+1)) * 4] +
+                tempData[((y+1) * canvas.width + (x-1)) * 4] + 2 * tempData[((y+1) * canvas.width + x) * 4] + tempData[((y+1) * canvas.width + (x+1)) * 4]
+              );
+              
+              const magnitude = Math.sqrt(gx * gx + gy * gy) * edgeStrength;
+              const edgeValue = magnitude > threshold ? 0 : 255; // Linhas pretas, fundo branco
+              
+              data[idx] = edgeValue;     // Red
+              data[idx + 1] = edgeValue; // Green
+              data[idx + 2] = edgeValue; // Blue
+            }
+          }
+        } else if (detectionMode === "color") {
+          // Reduzir quantidade de cores (posterização)
+          const levels = Math.max(2, colorCount[0]);
+          const factor = 255 / (levels - 1);
+          
+          for (let i = 0; i < data.length; i += 4) {
+            data[i] = Math.round(Math.round(data[i] / factor) * factor);
+            data[i + 1] = Math.round(Math.round(data[i + 1] / factor) * factor);
+            data[i + 2] = Math.round(Math.round(data[i + 2] / factor) * factor);
+          }
+        }
+        
+        // Aplicar inversão se ativada
+        if (invertImage) {
+          for (let i = 0; i < data.length; i += 4) {
+            data[i] = 255 - data[i];
+            data[i + 1] = 255 - data[i + 1];
+            data[i + 2] = 255 - data[i + 2];
+          }
+        }
+        
       } else if (traceType === "multi") {
-        posterizationFactor = Math.max(8, 128 / settings.colors[0]);
+        // Aplicar configurações Multi Colorido
+        const colors = settings.colors[0];
+        const factor = 255 / Math.max(1, colors - 1);
+        
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = Math.round(Math.round(data[i] / factor) * factor);
+          data[i + 1] = Math.round(Math.round(data[i + 1] / factor) * factor);
+          data[i + 2] = Math.round(Math.round(data[i + 2] / factor) * factor);
+        }
+        
       } else if (traceType === "pixel") {
-        posterizationFactor = Math.max(4, 64 / settings.colors[0]);
-      }
-      
-      // Aplicar posterização com base nas configurações
-      for (let i = 0; i < data.length; i += 4) {
-        data[i] = Math.round(data[i] / posterizationFactor) * posterizationFactor;
-        data[i + 1] = Math.round(data[i + 1] / posterizationFactor) * posterizationFactor;
-        data[i + 2] = Math.round(data[i + 2] / posterizationFactor) * posterizationFactor;
+        // Aplicar configurações Arte Pixel
+        const colors = settings.colors[0];
+        const pixelSize = Math.max(1, settings.pixelSize[0]);
+        const factor = 255 / Math.max(1, colors - 1);
+        
+        // Efeito de pixelização
+        for (let y = 0; y < canvas.height; y += pixelSize) {
+          for (let x = 0; x < canvas.width; x += pixelSize) {
+            let r = 0, g = 0, b = 0, count = 0;
+            
+            // Calcular cor média do bloco
+            for (let py = y; py < Math.min(y + pixelSize, canvas.height); py++) {
+              for (let px = x; px < Math.min(x + pixelSize, canvas.width); px++) {
+                const idx = (py * canvas.width + px) * 4;
+                r += data[idx];
+                g += data[idx + 1];
+                b += data[idx + 2];
+                count++;
+              }
+            }
+            
+            if (count > 0) {
+              r = Math.round(Math.round((r / count) / factor) * factor);
+              g = Math.round(Math.round((g / count) / factor) * factor);
+              b = Math.round(Math.round((b / count) / factor) * factor);
+              
+              // Aplicar cor média a todo o bloco
+              for (let py = y; py < Math.min(y + pixelSize, canvas.height); py++) {
+                for (let px = x; px < Math.min(x + pixelSize, canvas.width); px++) {
+                  const idx = (py * canvas.width + px) * 4;
+                  data[idx] = r;
+                  data[idx + 1] = g;
+                  data[idx + 2] = b;
+                }
+              }
+            }
+          }
+        }
       }
       
       ctx.putImageData(imageData, 0, 0);
