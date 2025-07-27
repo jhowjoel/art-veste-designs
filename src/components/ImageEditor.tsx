@@ -469,6 +469,7 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
 
   // Estados para limpeza de contorno
   const [contourCleanSettings, setContourCleanSettings] = useState({
+    cleaningIntensity: 1,
     spotRemovalSize: [5],
     contourThickness: [2],
     backgroundCleanup: true,
@@ -476,8 +477,12 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
     smoothContours: [3]
   });
 
+  // Estado para controlar qual ferramenta Path está ativa
+  const [activePathTool, setActivePathTool] = useState<"trace" | "contour-clean" | null>(null);
+
   // Função para limpeza de contorno (remover manchas pretas, manter só contornos)
-  const handleContourClean = useCallback(async () => {
+  const handleContourClean = useCallback(async (intensity?: number) => {
+    const cleaningLevel = intensity || contourCleanSettings.cleaningIntensity;
     const activeObject = fabricCanvas?.getActiveObject();
     if (!activeObject || !(activeObject instanceof FabricImage)) {
       toast({
@@ -540,9 +545,10 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
         }
       }
 
-      // 3. Remover manchas pequenas (noise removal)
+      // 3. Remover manchas pequenas (noise removal) baseado na intensidade
       const cleanData = new Uint8ClampedArray(edgeData);
-      const spotSize = contourCleanSettings.spotRemovalSize[0];
+      const spotSize = Math.max(1, Math.floor(cleaningLevel * 0.3)); // Tamanho baseado na intensidade
+      const cleaningThreshold = 0.6 - (cleaningLevel * 0.01); // Threshold mais agressivo com maior intensidade
       
       for (let y = spotSize; y < height - spotSize; y++) {
         for (let x = spotSize; x < width - spotSize; x++) {
@@ -552,9 +558,10 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
             let blackNeighbors = 0;
             let totalNeighbors = 0;
             
-            // Verificar vizinhança
-            for (let dy = -spotSize; dy <= spotSize; dy++) {
-              for (let dx = -spotSize; dx <= spotSize; dx++) {
+            // Verificar vizinhança baseada na intensidade
+            const checkRadius = Math.max(1, Math.floor(cleaningLevel * 0.2));
+            for (let dy = -checkRadius; dy <= checkRadius; dy++) {
+              for (let dx = -checkRadius; dx <= checkRadius; dx++) {
                 const nIdx = ((y + dy) * width + (x + dx)) * 4;
                 if (nIdx >= 0 && nIdx < edgeData.length) {
                   totalNeighbors++;
@@ -563,8 +570,9 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
               }
             }
             
-            // Se tem poucos vizinhos pretos, é uma mancha isolada - remover
-            if (blackNeighbors / totalNeighbors < 0.3) {
+            // Remover manchas baseado na intensidade e vizinhança
+            const neighborRatio = blackNeighbors / totalNeighbors;
+            if (neighborRatio < cleaningThreshold) {
               cleanData[idx] = 255;     // Tornar branco
               cleanData[idx + 1] = 255;
               cleanData[idx + 2] = 255;
@@ -1223,7 +1231,7 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
         <Button
           variant="ghost"
           size="icon"
-          onClick={handleContourClean}
+          onClick={() => setActivePathTool(activePathTool === 'contour-clean' ? null : 'contour-clean')}
           disabled={isProcessing}
           className="text-white hover:bg-gray-800 bg-blue-600"
           title="Limpar Contornos (Remover Manchas)"
@@ -1866,16 +1874,36 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
                   {/* Nova aba de Limpeza de Contorno */}
                   <TabsContent value="clean" className="space-y-4">
                     <div className="space-y-4">
-                      <div>
-                        <Label className="text-white mb-2 block">Tamanho de Mancha a Remover: {contourCleanSettings.spotRemovalSize[0]}px</Label>
-                        <Slider
-                          value={contourCleanSettings.spotRemovalSize}
-                          onValueChange={(value) => setContourCleanSettings({...contourCleanSettings, spotRemovalSize: value})}
-                          min={1}
-                          max={20}
-                          step={1}
-                          className="w-full"
+                      <div className="bg-gray-800 p-4 rounded-lg">
+                        <Label className="text-white mb-3 block font-medium">
+                          Intensidade de Limpeza: {contourCleanSettings.cleaningIntensity}%
+                        </Label>
+                        <input
+                          type="range"
+                          min="1"
+                          max="50"
+                          step="1"
+                          value={contourCleanSettings.cleaningIntensity}
+                          onChange={(e) => {
+                            const intensity = parseInt(e.target.value);
+                            setContourCleanSettings(prev => ({ ...prev, cleaningIntensity: intensity }));
+                            // Aplicar em tempo real
+                            handleContourClean(intensity);
+                          }}
+                          className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
                         />
+                        <div className="flex justify-between text-xs text-gray-400 mt-2">
+                          <span>1% (Leve)</span>
+                          <span>25% (Médio)</span>
+                          <span>50% (Máximo)</span>
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-blue-300 bg-blue-900/30 p-3 rounded-lg">
+                        <p><strong>Como usar:</strong></p>
+                        <p>• 1-15%: Remove pequenas manchas</p>
+                        <p>• 16-30%: Limpeza moderada</p>
+                        <p>• 31-50%: Limpeza máxima - só contorno</p>
                       </div>
 
                       <div>
@@ -1890,18 +1918,6 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
                         />
                       </div>
 
-                      <div>
-                        <Label className="text-white mb-2 block">Suavização: {contourCleanSettings.smoothContours[0]}</Label>
-                        <Slider
-                          value={contourCleanSettings.smoothContours}
-                          onValueChange={(value) => setContourCleanSettings({...contourCleanSettings, smoothContours: value})}
-                          min={0}
-                          max={10}
-                          step={1}
-                          className="w-full"
-                        />
-                      </div>
-
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="backgroundCleanup"
@@ -1909,31 +1925,20 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
                           onCheckedChange={(checked) => setContourCleanSettings({...contourCleanSettings, backgroundCleanup: !!checked})}
                         />
                         <Label htmlFor="backgroundCleanup" className="text-white">
-                          Limpar Fundo (Transparente)
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="preserveMainContours"
-                          checked={contourCleanSettings.preserveMainContours}
-                          onCheckedChange={(checked) => setContourCleanSettings({...contourCleanSettings, preserveMainContours: !!checked})}
-                        />
-                        <Label htmlFor="preserveMainContours" className="text-white">
-                          Preservar Contornos Principais
+                          Fundo Transparente
                         </Label>
                       </div>
 
                       <Button
-                        onClick={handleContourClean}
+                        onClick={() => handleContourClean()}
                         disabled={isProcessing}
                         className="w-full bg-blue-600 hover:bg-blue-700"
                       >
-                        {isProcessing ? "Processando..." : "Limpar Contornos"}
+                        {isProcessing ? "Processando..." : "Aplicar Limpeza Manual"}
                       </Button>
 
                       <div className="text-xs text-gray-400 mt-2">
-                        Esta ferramenta remove manchas pretas pequenas e preserva apenas os contornos principais da imagem, ideal para corte a laser.
+                        Arraste o controle de intensidade para remover gradualmente as manchas até sobrar apenas o contorno limpo.
                       </div>
                     </div>
                   </TabsContent>
@@ -2153,6 +2158,94 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
             >
               Cancelar
             </Button>
+          </Card>
+        </div>
+      )}
+
+      {/* Painel de Limpeza de Contorno */}
+      {activePathTool === 'contour-clean' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-96 p-6 bg-gray-900 border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Limpar Contornos</h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setActivePathTool(null)}
+                className="text-white hover:bg-gray-800"
+              >
+                ✕
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-gray-800 p-4 rounded-lg">
+                <Label className="text-white mb-3 block font-medium">
+                  Intensidade de Limpeza: {contourCleanSettings.cleaningIntensity}%
+                </Label>
+                <input
+                  type="range"
+                  min="1"
+                  max="50"
+                  step="1"
+                  value={contourCleanSettings.cleaningIntensity}
+                  onChange={(e) => {
+                    const intensity = parseInt(e.target.value);
+                    setContourCleanSettings(prev => ({ ...prev, cleaningIntensity: intensity }));
+                    // Aplicar em tempo real
+                    handleContourClean(intensity);
+                  }}
+                  className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-2">
+                  <span>1% (Leve)</span>
+                  <span>25% (Médio)</span>
+                  <span>50% (Máximo)</span>
+                </div>
+              </div>
+
+              <div className="text-xs text-blue-300 bg-blue-900/30 p-3 rounded-lg">
+                <p><strong>Como usar:</strong></p>
+                <p>• 1-15%: Remove pequenas manchas</p>
+                <p>• 16-30%: Limpeza moderada</p>
+                <p>• 31-50%: Limpeza máxima - só contorno</p>
+              </div>
+
+              <div>
+                <Label className="text-white mb-2 block">Espessura do Contorno: {contourCleanSettings.contourThickness[0]}px</Label>
+                <Slider
+                  value={contourCleanSettings.contourThickness}
+                  onValueChange={(value) => setContourCleanSettings({...contourCleanSettings, contourThickness: value})}
+                  min={1}
+                  max={10}
+                  step={1}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="backgroundCleanup"
+                  checked={contourCleanSettings.backgroundCleanup}
+                  onCheckedChange={(checked) => setContourCleanSettings({...contourCleanSettings, backgroundCleanup: !!checked})}
+                />
+                <Label htmlFor="backgroundCleanup" className="text-white">
+                  Fundo Transparente
+                </Label>
+              </div>
+
+              <Button
+                onClick={() => handleContourClean()}
+                disabled={isProcessing}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                {isProcessing ? "Processando..." : "Aplicar Limpeza Manual"}
+              </Button>
+
+              <div className="text-xs text-gray-400 mt-2">
+                Arraste o controle de intensidade para remover gradualmente as manchas até sobrar apenas o contorno limpo.
+              </div>
+            </div>
           </Card>
         </div>
       )}
