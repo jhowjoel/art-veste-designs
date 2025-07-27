@@ -77,6 +77,10 @@ export const Categories = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {categories?.map((category) => {
             const IconComponent = iconMap[category.icon || 'Palette'] || Palette;
+            // Primeiro tenta buscar tradução para categoria dinâmica, se não encontrar usa o nome original
+            const categoryKey = `category.${category.name.toLowerCase().replace(/\s+/g, '_')}`;
+            const translatedName = t(categoryKey) !== categoryKey ? t(categoryKey) : category.name;
+            
             return (
               <Card 
                 key={category.id} 
@@ -91,7 +95,7 @@ export const Categories = () => {
               >
                 <CardContent className="p-6 text-center">
                   <IconComponent className="w-12 h-12 text-art-primary mx-auto mb-4 group-hover:scale-110 transition-transform" />
-                  <h3 className="font-semibold">{category.name}</h3>
+                  <h3 className="font-semibold">{translatedName}</h3>
                   {category.description && (
                     <p className="text-sm text-muted-foreground mt-2">
                       {category.description}

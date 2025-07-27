@@ -95,7 +95,10 @@ export const FeaturedProducts = () => {
                 <h3 className="font-semibold mb-2 line-clamp-2">{product.name}</h3>
                 {product.categories && (
                   <Badge variant="secondary" className="mb-2">
-                    {product.categories.name}
+                    {(() => {
+                      const categoryKey = `category.${product.categories.name.toLowerCase().replace(/\s+/g, '_')}`;
+                      return t(categoryKey) !== categoryKey ? t(categoryKey) : product.categories.name;
+                    })()}
                   </Badge>
                 )}
                 <p className="text-2xl font-bold text-art-primary">
