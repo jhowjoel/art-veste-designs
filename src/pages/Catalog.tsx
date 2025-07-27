@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -22,9 +23,18 @@ type Product = Tables<"products"> & {
 
 const Catalog = () => {
   const [searchParams] = useSearchParams();
+  const [user, setUser] = useState<User | null>(null);
   
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+  
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
   }, []);
   
   const [searchTerm, setSearchTerm] = useState("");
@@ -218,9 +228,11 @@ const Catalog = () => {
                   <p className="text-2xl font-bold text-art-primary">
                     R$ {product.price.toFixed(2)}
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    {product.downloads_count} downloads
-                  </p>
+                  {user?.email === 'jota100clock@gmail.com' && (
+                    <p className="text-sm text-muted-foreground">
+                      {product.downloads_count} downloads
+                    </p>
+                  )}
                 </CardContent>
 
                 <CardFooter className="p-4 pt-0 flex gap-2">
