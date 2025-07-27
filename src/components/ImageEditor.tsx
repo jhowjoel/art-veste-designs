@@ -487,21 +487,33 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
       const data = imageData.data;
       
       if (traceType === "single") {
-        // Aplicar configurações de Varredura Única
-        const { detectionMode, brightnessThreshold, edgeDetection, colorCount, centerLineTrace, edgeThreshold, invertImage, blur } = settings;
+        const { 
+          detectionMode, brightnessThreshold, edgeDetection, colorCount, 
+          centerLineTrace, edgeThreshold, invertImage, blur, simplification, 
+          optimization, autoTrace, userAssisted 
+        } = settings;
+        
+        // Aplicar blur se configurado
+        if (blur[0] > 0) {
+          ctx.filter = `blur(${blur[0]}px)`;
+          ctx.drawImage(imgElement, 0, 0);
+          ctx.filter = 'none';
+          const blurredData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          for (let i = 0; i < data.length; i++) {
+            data[i] = blurredData.data[i];
+          }
+        }
         
         if (detectionMode === "brightness") {
-          // Aplicar limite de brilho
           const threshold = brightnessThreshold[0];
           for (let i = 0; i < data.length; i += 4) {
             const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
             const newValue = brightness > threshold ? 255 : 0;
-            data[i] = newValue;     // Red
-            data[i + 1] = newValue; // Green
-            data[i + 2] = newValue; // Blue
+            data[i] = newValue;
+            data[i + 1] = newValue;
+            data[i + 2] = newValue;
           }
         } else if (detectionMode === "edge") {
-          // Aplicar detecção de bordas usando filtro Sobel
           const edgeStrength = edgeDetection[0] / 100;
           const threshold = edgeThreshold[0];
           const tempData = new Uint8ClampedArray(data);
@@ -510,7 +522,7 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
             for (let x = 1; x < canvas.width - 1; x++) {
               const idx = (y * canvas.width + x) * 4;
               
-              // Calcular gradiente horizontal e vertical
+              // Sobel operator para detecção de bordas
               const gx = (
                 -tempData[((y-1) * canvas.width + (x-1)) * 4] + tempData[((y-1) * canvas.width + (x+1)) * 4] +
                 -2 * tempData[(y * canvas.width + (x-1)) * 4] + 2 * tempData[(y * canvas.width + (x+1)) * 4] +
@@ -523,15 +535,25 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
               );
               
               const magnitude = Math.sqrt(gx * gx + gy * gy) * edgeStrength;
-              const edgeValue = magnitude > threshold ? 0 : 255; // Linhas pretas, fundo branco
+              const edgeValue = magnitude > threshold ? 0 : 255;
               
-              data[idx] = edgeValue;     // Red
-              data[idx + 1] = edgeValue; // Green
-              data[idx + 2] = edgeValue; // Blue
+              data[idx] = edgeValue;
+              data[idx + 1] = edgeValue;
+              data[idx + 2] = edgeValue;
+            }
+          }
+          
+          // Aplicar traçado de linha central se ativado
+          if (centerLineTrace) {
+            for (let i = 0; i < data.length; i += 4) {
+              if (data[i] === 0) { // Se é uma borda
+                data[i] = 128; // Cinza para linha central
+                data[i + 1] = 128;
+                data[i + 2] = 128;
+              }
             }
           }
         } else if (detectionMode === "color") {
-          // Reduzir quantidade de cores (posterização)
           const levels = Math.max(2, colorCount[0]);
           const factor = 255 / (levels - 1);
           
@@ -551,24 +573,80 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
           }
         }
         
+        // Aplicar simplificação
+        if (simplification[0] > 0) {
+          const simplifyFactor = Math.max(1, simplification[0]);
+          for (let i = 0; i < data.length; i += 4) {
+            data[i] = Math.round(data[i] / simplifyFactor) * simplifyFactor;
+            data[i + 1] = Math.round(data[i + 1] / simplifyFactor) * simplifyFactor;
+            data[i + 2] = Math.round(data[i + 2] / simplifyFactor) * simplifyFactor;
+          }
+        }
+        
       } else if (traceType === "multi") {
-        // Aplicar configurações Multi Colorido
-        const colors = settings.colors[0];
-        const factor = 255 / Math.max(1, colors - 1);
+        const { 
+          brightnessLevels, colors, grays, blur, simplification, 
+          optimization, removeBackground, smooth, stack 
+        } = settings;
+        
+        // Aplicar blur
+        if (blur[0] > 0) {
+          ctx.filter = `blur(${blur[0]}px)`;
+          ctx.drawImage(imgElement, 0, 0);
+          ctx.filter = 'none';
+          const blurredData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          for (let i = 0; i < data.length; i++) {
+            data[i] = blurredData.data[i];
+          }
+        }
+        
+        // Redução de cores baseada em configurações
+        const colorLevels = Math.max(2, colors[0]);
+        const grayLevels = Math.max(1, grays[0]);
+        const brightLevels = Math.max(1, brightnessLevels[0]);
         
         for (let i = 0; i < data.length; i += 4) {
+          // Aplicar redução de cores
+          const factor = 255 / (colorLevels - 1);
           data[i] = Math.round(Math.round(data[i] / factor) * factor);
           data[i + 1] = Math.round(Math.round(data[i + 1] / factor) * factor);
           data[i + 2] = Math.round(Math.round(data[i + 2] / factor) * factor);
+          
+          // Aplicar níveis de cinza se necessário
+          if (grayLevels < 16) {
+            const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+            const grayLevel = Math.round(gray / (255 / grayLevels)) * (255 / grayLevels);
+            data[i] = grayLevel;
+            data[i + 1] = grayLevel;
+            data[i + 2] = grayLevel;
+          }
+        }
+        
+        // Remover fundo se ativado
+        if (removeBackground) {
+          const bgColor = [data[0], data[1], data[2]]; // Usar canto superior esquerdo como cor de fundo
+          const tolerance = 30;
+          
+          for (let i = 0; i < data.length; i += 4) {
+            const diff = Math.abs(data[i] - bgColor[0]) + Math.abs(data[i + 1] - bgColor[1]) + Math.abs(data[i + 2] - bgColor[2]);
+            if (diff < tolerance) {
+              data[i + 3] = 0; // Tornar transparente
+            }
+          }
         }
         
       } else if (traceType === "pixel") {
-        // Aplicar configurações Arte Pixel
-        const colors = settings.colors[0];
-        const pixelSize = Math.max(1, settings.pixelSize[0]);
-        const factor = 255 / Math.max(1, colors - 1);
+        const { 
+          brightnessLevels, colors, grays, curves, islands, 
+          sparsePixels, multiplier, optimization, voronoiOutput, bSplinesOutput 
+        } = settings;
         
-        // Efeito de pixelização
+        const colorLevels = Math.max(2, colors[0]);
+        const pixelSize = Math.max(1, sparsePixels[0]);
+        const factor = 255 / (colorLevels - 1);
+        const scale = multiplier[0];
+        
+        // Efeito de pixelização avançado
         for (let y = 0; y < canvas.height; y += pixelSize) {
           for (let x = 0; x < canvas.width; x += pixelSize) {
             let r = 0, g = 0, b = 0, count = 0;
@@ -589,6 +667,13 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
               g = Math.round(Math.round((g / count) / factor) * factor);
               b = Math.round(Math.round((b / count) / factor) * factor);
               
+              // Aplicar efeito de curvas se ativado
+              if (curves) {
+                r = Math.min(255, r * scale);
+                g = Math.min(255, g * scale);
+                b = Math.min(255, b * scale);
+              }
+              
               // Aplicar cor média a todo o bloco
               for (let py = y; py < Math.min(y + pixelSize, canvas.height); py++) {
                 for (let px = x; px < Math.min(x + pixelSize, canvas.width); px++) {
@@ -597,6 +682,38 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
                   data[idx + 1] = g;
                   data[idx + 2] = b;
                 }
+              }
+            }
+          }
+        }
+        
+        // Aplicar filtro de ilhas (remoção de pixels isolados)
+        if (islands[0] > 1) {
+          const threshold = islands[0];
+          const tempData = new Uint8ClampedArray(data);
+          
+          for (let y = 1; y < canvas.height - 1; y++) {
+            for (let x = 1; x < canvas.width - 1; x++) {
+              const idx = (y * canvas.width + x) * 4;
+              let similarNeighbors = 0;
+              
+              // Verificar vizinhos
+              for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                  if (dx === 0 && dy === 0) continue;
+                  const neighborIdx = ((y + dy) * canvas.width + (x + dx)) * 4;
+                  const colorDiff = Math.abs(tempData[idx] - tempData[neighborIdx]) +
+                                  Math.abs(tempData[idx + 1] - tempData[neighborIdx + 1]) +
+                                  Math.abs(tempData[idx + 2] - tempData[neighborIdx + 2]);
+                  if (colorDiff < 30) similarNeighbors++;
+                }
+              }
+              
+              // Se tem poucos vizinhos similares, remover
+              if (similarNeighbors < threshold) {
+                data[idx] = 255;
+                data[idx + 1] = 255;
+                data[idx + 2] = 255;
               }
             }
           }
