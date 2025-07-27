@@ -769,10 +769,10 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
         {/* Canvas principal */}
         <div className="flex-1 bg-gray-100 p-4">
           <Card className="h-full flex items-center justify-center bg-white">
-            <div className="border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+            <div className="border border-gray-200 rounded-lg shadow-lg overflow-hidden bg-white" style={{ width: '800px', height: '600px' }}>
               <canvas 
                 ref={canvasRef} 
-                className="max-w-full"
+                className="w-full h-full"
                 style={{ display: "block" }}
               />
             </div>
@@ -1341,11 +1341,12 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
 
         {/* Painel de Comparação de Imagens */}
         {showImageComparison && (originalImage || vectorizedImage) && (
-          <div className="w-80 bg-white border-l border-gray-200 p-4">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Comparação de Imagens</h3>
-              <p className="text-sm text-gray-600">Escolha qual versão manter:</p>
-            </div>
+          <div className="w-80 bg-gray-100 border-l border-gray-200 p-4">
+            <Card className="h-full bg-white p-4">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Comparação de Imagens</h3>
+                <p className="text-sm text-gray-600">Escolha qual versão manter:</p>
+              </div>
             
             <div className="space-y-4">
               {originalImage && (
@@ -1383,13 +1384,14 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
               )}
             </div>
             
-            <Button
-              onClick={() => setShowImageComparison(false)}
-              className="w-full mt-4"
-              variant="outline"
-            >
-              Fechar Comparação
-            </Button>
+              <Button
+                onClick={() => setShowImageComparison(false)}
+                className="w-full mt-4"
+                variant="outline"
+              >
+                Fechar Comparação
+              </Button>
+            </Card>
           </div>
         )}
       </div>
