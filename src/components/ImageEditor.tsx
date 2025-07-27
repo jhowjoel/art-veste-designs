@@ -467,6 +467,112 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
 
   const colors = ["#000000", "#ff0000", "#0000ff"];
 
+  // Função para vetorização automática com um clique (otimizada para corte a laser)
+  const handleAutoVectorize = useCallback(async () => {
+    const activeObject = fabricCanvas?.getActiveObject();
+    if (!activeObject || !(activeObject instanceof FabricImage)) {
+      toast({
+        title: "Seleção necessária",
+        description: "Selecione uma imagem para vetorizar automaticamente",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const imgElement = activeObject.getElement() as HTMLImageElement;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) throw new Error('Could not get canvas context');
+      
+      canvas.width = imgElement.naturalWidth;
+      canvas.height = imgElement.naturalHeight;
+      ctx.drawImage(imgElement, 0, 0);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+
+      // Configurações otimizadas para corte a laser
+      // 1. Conversão para escala de cinza
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+        data[i] = gray;     // R
+        data[i + 1] = gray; // G
+        data[i + 2] = gray; // B
+      }
+
+      // 2. Detecção de bordas otimizada
+      const width = canvas.width;
+      const height = canvas.height;
+      const edgeData = new Uint8ClampedArray(data.length);
+      const threshold = 50;
+
+      for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+          const idx = (y * width + x) * 4;
+          
+          // Operador Sobel para detecção de bordas
+          const gx = (
+            -1 * data[((y-1) * width + (x-1)) * 4] + 1 * data[((y-1) * width + (x+1)) * 4] +
+            -2 * data[(y * width + (x-1)) * 4] + 2 * data[(y * width + (x+1)) * 4] +
+            -1 * data[((y+1) * width + (x-1)) * 4] + 1 * data[((y+1) * width + (x+1)) * 4]
+          );
+          
+          const gy = (
+            -1 * data[((y-1) * width + (x-1)) * 4] + -2 * data[((y-1) * width + x) * 4] + -1 * data[((y-1) * width + (x+1)) * 4] +
+            1 * data[((y+1) * width + (x-1)) * 4] + 2 * data[((y+1) * width + x) * 4] + 1 * data[((y+1) * width + (x+1)) * 4]
+          );
+          
+          const magnitude = Math.sqrt(gx * gx + gy * gy);
+          const edge = magnitude > threshold ? 0 : 255;
+          
+          edgeData[idx] = edge;     // R
+          edgeData[idx + 1] = edge; // G
+          edgeData[idx + 2] = edge; // B
+          edgeData[idx + 3] = 255;  // A
+        }
+      }
+
+      // 3. Aplicar resultado
+      ctx.putImageData(new ImageData(edgeData, width, height), 0, 0);
+      
+      // 4. Criar nova imagem vetorizada
+      const vectorizedDataURL = canvas.toDataURL('image/png');
+      const vectorizedImg = new Image();
+      
+      vectorizedImg.onload = () => {
+        const fabricImg = new FabricImage(vectorizedImg, {
+          left: activeObject.left! + 50,
+          top: activeObject.top!,
+          scaleX: activeObject.scaleX,
+          scaleY: activeObject.scaleY,
+        });
+        
+        fabricCanvas?.add(fabricImg);
+        fabricCanvas?.renderAll();
+        
+        toast({
+          title: "Vetorização automática concluída",
+          description: "Imagem pronta para corte a laser!",
+        });
+      };
+      
+      vectorizedImg.src = vectorizedDataURL;
+      
+    } catch (error) {
+      console.error('Error in auto vectorization:', error);
+      toast({
+        title: "Erro",
+        description: "Erro na vetorização automática",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [fabricCanvas, toast]);
+
   const applyVectorization = useCallback(async (traceType: string, settings: any) => {
     if (!vectorizedImage || !fabricCanvas) return;
 
@@ -888,6 +994,18 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
           title="Carregar Imagem"
         >
           <Upload className="h-5 w-5" />
+        </Button>
+
+        {/* Botão de Vetorização Automática */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleAutoVectorize}
+          className="text-white hover:bg-gray-800 bg-green-600"
+          title="Vetorizar Automaticamente para Corte a Laser"
+          disabled={isProcessing}
+        >
+          <GitBranch className="h-5 w-5" />
         </Button>
         
         <Separator className="w-8 bg-gray-700" />
