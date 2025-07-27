@@ -1339,61 +1339,6 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
           </div>
         )}
 
-        {/* Painel de Comparação de Imagens */}
-        {showImageComparison && (originalImage || vectorizedImage) && (
-          <div className="w-80 bg-gray-100 border-l border-gray-200 p-4">
-            <Card className="h-full bg-white p-4">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">Comparação de Imagens</h3>
-                <p className="text-sm text-gray-600">Escolha qual versão manter:</p>
-              </div>
-            
-            <div className="space-y-4">
-              {originalImage && (
-                <div className="border rounded-lg p-4 bg-gray-50">
-                  <h4 className="font-medium text-gray-700 mb-2">Imagem Original</h4>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Versão não modificada</span>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDeleteImage('original')}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Deletar
-                    </Button>
-                  </div>
-                </div>
-              )}
-              
-              {vectorizedImage && (
-                <div className="border rounded-lg p-4 bg-blue-50">
-                  <h4 className="font-medium text-gray-700 mb-2">Imagem Vetorizada</h4>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Versão processada</span>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDeleteImage('vectorized')}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Deletar
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-              <Button
-                onClick={() => setShowImageComparison(false)}
-                className="w-full mt-4"
-                variant="outline"
-              >
-                Fechar Comparação
-              </Button>
-            </Card>
-          </div>
-        )}
       </div>
 
       {/* Inputs ocultos */}
