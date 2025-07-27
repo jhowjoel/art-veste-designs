@@ -768,7 +768,7 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
 
         {/* Canvas principal */}
         <div className="flex-1 bg-gray-100 p-4">
-          <Card className="h-full flex items-center justify-center bg-white">
+          <div className="h-full flex items-center justify-center">
             <div className="border border-gray-200 rounded-lg shadow-lg overflow-hidden bg-white" style={{ width: '800px', height: '600px' }}>
               <canvas 
                 ref={canvasRef} 
@@ -776,7 +776,7 @@ export const ImageEditor = ({ className, onBackToProfile }: ImageEditorProps) =>
                 style={{ display: "block" }}
               />
             </div>
-          </Card>
+          </div>
         </div>
 
         {/* Painel de Caminho */}
