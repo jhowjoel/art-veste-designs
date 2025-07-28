@@ -103,6 +103,30 @@ serve(async (req) => {
               updated_at: new Date().toISOString()
             })
             .eq("id", subscription.id);
+        } else {
+          // Se não for assinatura, adicionar produtos comprados aos downloads
+          console.log("9. Adicionando produtos aos downloads");
+          const { data: orderItems } = await supabaseService
+            .from("order_items")
+            .select("product_id")
+            .eq("order_id", order.id);
+            
+          if (orderItems && orderItems.length > 0) {
+            // Adicionar cada produto aos downloads do usuário
+            const downloadInserts = orderItems.map(item => ({
+              user_id: order.user_id,
+              product_id: item.product_id,
+              order_id: order.id,
+              downloaded_at: null,
+              created_at: new Date().toISOString()
+            }));
+            
+            await supabaseService
+              .from("user_downloads")
+              .insert(downloadInserts);
+              
+            console.log(`10. ${downloadInserts.length} produtos adicionados aos downloads do usuário`);
+          }
         }
       }
     }
