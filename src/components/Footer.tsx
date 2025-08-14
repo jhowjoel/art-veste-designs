@@ -1,4 +1,4 @@
-import { Package, Mail, Instagram, Facebook, Twitter } from "lucide-react";
+import { Package, Mail, Instagram, Facebook, Twitter, CheckSquare, Square } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
@@ -31,6 +31,7 @@ export const Footer = () => {
   const [deleteLoading, setDeleteLoading] = useState<string>("");
   const [deleteError, setDeleteError] = useState<string>("");
   const [deleteSuccess, setDeleteSuccess] = useState<string>("");
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
 
   // Buscar todas as categorias ao abrir o formulário
   useEffect(() => {
@@ -98,6 +99,72 @@ export const Footer = () => {
       setDeleteLoading("");
     }
   }
+
+  // Função para seleção múltipla
+  const toggleProductSelection = (productId: string) => {
+    setSelectedProducts(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  // Selecionar/deselecionar todos
+  const toggleSelectAll = () => {
+    if (selectedProducts.length === productsToDelete.length) {
+      setSelectedProducts([]);
+    } else {
+      setSelectedProducts(productsToDelete.map(p => p.id));
+    }
+  };
+
+  // Deletar produtos selecionados
+  const handleDeleteSelected = async () => {
+    if (selectedProducts.length === 0) return;
+    
+    setDeleteLoading("bulk");
+    setDeleteError("");
+    setDeleteSuccess("");
+    
+    try {
+      for (const productId of selectedProducts) {
+        const product = productsToDelete.find(p => p.id === productId);
+        if (!product) continue;
+
+        // Deletar arquivos do storage
+        const filesToDelete = [];
+        if (product.capa_url) {
+          const path = product.capa_url.split("/art-files/")[1];
+          if (path) filesToDelete.push(path);
+        }
+        if (Array.isArray(product.images_urls)) {
+          for (const url of product.images_urls) {
+            const path = url.split("/art-files/")[1];
+            if (path) filesToDelete.push(path);
+          }
+        }
+        if (filesToDelete.length > 0) {
+          await supabase.storage.from("art-files").remove(filesToDelete);
+        }
+      }
+
+      // Deletar produtos do banco
+      const { error: dbError } = await supabase
+        .from("products")
+        .delete()
+        .in("id", selectedProducts);
+      
+      if (dbError) throw dbError;
+      
+      setDeleteSuccess(`${selectedProducts.length} produtos deletados com sucesso!`);
+      setSelectedProducts([]);
+      refetchProductsToDelete();
+    } catch (err: any) {
+      setDeleteError(err.message || "Erro ao deletar produtos.");
+    } finally {
+      setDeleteLoading("");
+    }
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -375,13 +442,16 @@ export const Footer = () => {
                 </form>
               </div>
               <div className="mt-8 border-t pt-4">
-                <h2 className="text-lg font-bold mb-2 text-art-primary text-center">Deletar Produto</h2>
+                <h2 className="text-lg font-bold mb-2 text-art-primary text-center">Gerenciar Produtos</h2>
                 <div className="mb-4">
                   <label className="block mb-1 font-semibold">Categoria</label>
                   <select
                     className="w-full border rounded px-3 py-2 !text-white !bg-black"
                     value={selectedDeleteCategory}
-                    onChange={e => setSelectedDeleteCategory(e.target.value)}
+                    onChange={e => {
+                      setSelectedDeleteCategory(e.target.value);
+                      setSelectedProducts([]);
+                    }}
                   >
                     <option value="">Selecione uma categoria</option>
                     {categories.map(cat => (
@@ -390,37 +460,123 @@ export const Footer = () => {
                   </select>
                 </div>
                 {selectedDeleteCategory && (
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {productsToDelete?.length === 0 && <div className="text-gray-500 text-center">Nenhum produto nesta categoria.</div>}
-                    {productsToDelete?.map((product: any) => (
-                      <div key={product.id} className="flex items-center justify-between border rounded p-2 bg-gray-50">
-                        <div className="flex items-center gap-2">
-                          <img src={product.capa_url} alt={product.name} className="h-10 w-10 object-cover rounded border" />
-                          <span className="font-semibold text-art-primary">{product.name}</span>
-                        </div>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <button className="text-red-600 hover:text-red-800 p-2 rounded transition-colors" disabled={deleteLoading === product.id}>
-                              <Trash2 className="h-5 w-5" />
-                            </button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                            <AlertDialogDescription>Tem certeza que deseja deletar o produto "{product.name}"? Esta ação não pode ser desfeita.</AlertDialogDescription>
-                            <div className="flex gap-2 justify-end mt-4">
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteProduct(product)} disabled={deleteLoading === product.id}>
-                                {deleteLoading === product.id ? "Deletando..." : "Deletar"}
-                              </AlertDialogAction>
-                            </div>
-                            {deleteError && <div className="text-red-600 mt-2">{deleteError}</div>}
-                            {deleteSuccess && <div className="text-green-600 mt-2">{deleteSuccess}</div>}
-                          </AlertDialogContent>
-                        </AlertDialog>
+                  <div className="space-y-3">
+                    {productsToDelete?.length === 0 && (
+                      <div className="text-gray-500 text-center py-4">
+                        Nenhum produto nesta categoria.
                       </div>
-                    ))}
+                    )}
+                    
+                    {productsToDelete?.length > 0 && (
+                      <>
+                        {/* Controles de seleção múltipla */}
+                        <div className="flex items-center justify-between bg-gray-100 p-3 rounded">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={toggleSelectAll}
+                              className="flex items-center gap-2 text-sm hover:text-art-primary transition-colors"
+                            >
+                              {selectedProducts.length === productsToDelete.length ? (
+                                <CheckSquare className="h-4 w-4" />
+                              ) : (
+                                <Square className="h-4 w-4" />
+                              )}
+                              Selecionar todos
+                            </button>
+                            <span className="text-gray-600 text-sm">
+                              ({selectedProducts.length} de {productsToDelete.length} selecionados)
+                            </span>
+                          </div>
+                          {selectedProducts.length > 0 && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <button 
+                                  className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition-colors flex items-center gap-1"
+                                  disabled={deleteLoading === "bulk"}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                  {deleteLoading === "bulk" ? "Deletando..." : `Deletar (${selectedProducts.length})`}
+                                </button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogTitle>Confirmar exclusão múltipla</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja deletar {selectedProducts.length} produto(s) selecionado(s)? Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                                <div className="flex gap-2 justify-end mt-4">
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={handleDeleteSelected} 
+                                    disabled={deleteLoading === "bulk"}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    {deleteLoading === "bulk" ? "Deletando..." : "Deletar Selecionados"}
+                                  </AlertDialogAction>
+                                </div>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+
+                        {/* Lista de produtos */}
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {productsToDelete?.map((product: any) => (
+                            <div key={product.id} className="flex items-center justify-between border rounded p-2 bg-gray-50">
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={() => toggleProductSelection(product.id)}
+                                  className="text-art-primary hover:text-art-primary/80 transition-colors"
+                                >
+                                  {selectedProducts.includes(product.id) ? (
+                                    <CheckSquare className="h-4 w-4" />
+                                  ) : (
+                                    <Square className="h-4 w-4" />
+                                  )}
+                                </button>
+                                <img src={product.capa_url} alt={product.name} className="h-10 w-10 object-cover rounded border" />
+                                <div>
+                                  <span className="font-semibold text-art-primary block">{product.name}</span>
+                                  <span className="text-xs text-gray-600">R$ {product.price}</span>
+                                </div>
+                              </div>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <button 
+                                    className="text-red-600 hover:text-red-800 p-2 rounded transition-colors" 
+                                    disabled={deleteLoading === product.id}
+                                    title="Deletar apenas este produto"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja deletar o produto "{product.name}"? Esta ação não pode ser desfeita.
+                                  </AlertDialogDescription>
+                                  <div className="flex gap-2 justify-end mt-4">
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleDeleteProduct(product)} 
+                                      disabled={deleteLoading === product.id}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      {deleteLoading === product.id ? "Deletando..." : "Deletar"}
+                                    </AlertDialogAction>
+                                  </div>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
+
+                {/* Mensagens de feedback */}
+                {deleteError && <div className="text-red-600 mt-2 text-sm">{deleteError}</div>}
+                {deleteSuccess && <div className="text-green-600 mt-2 text-sm">{deleteSuccess}</div>}
               </div>
             </div>
           </div>
