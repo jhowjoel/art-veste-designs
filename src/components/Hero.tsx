@@ -31,7 +31,7 @@ export const Hero = () => {
           <div className="flex items-center justify-center gap-3 mb-6">
             <Package className="h-12 w-12 text-art-primary" />
             <h1 className="text-5xl md:text-6xl font-bold font-heading">
-              BoxCraft
+              Presynter
             </h1>
           </div>
           <p className="text-xl md:text-2xl text-muted-foreground mb-8">
