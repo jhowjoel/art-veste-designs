@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Download, Palette } from "lucide-react";
+import { ArrowRight, Download, Package, FileText, Scissors } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -29,9 +29,9 @@ export const Hero = () => {
       <div className="container mx-auto max-w-4xl">
         <div className="mb-8">
           <div className="flex items-center justify-center gap-3 mb-6">
-            <Palette className="h-12 w-12 text-art-primary" />
+            <Package className="h-12 w-12 text-art-primary" />
             <h1 className="text-5xl md:text-6xl font-bold font-heading">
-              Art
+              BoxCraft
             </h1>
           </div>
           <p className="text-xl md:text-2xl text-muted-foreground mb-8">
@@ -60,21 +60,12 @@ export const Hero = () => {
             <Download className="mr-2 h-5 w-5" />
             {t('hero.createAccount')}
           </Button>
-          <Button 
-            variant="secondary" 
-            size="lg"
-            onClick={() => navigate("/profile?tab=tools")}
-            className="text-lg px-8 py-6"
-          >
-            <Palette className="mr-2 h-5 w-5" />
-            Transforme imagens em vetor
-          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
           <div className="p-6">
             <div className="w-16 h-16 bg-art-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Palette className="h-8 w-8 text-art-primary" />
+              <Package className="h-8 w-8 text-art-primary" />
             </div>
             <h3 className="text-xl font-semibold mb-2">{t('hero.feature1.title')}</h3>
             <p className="text-muted-foreground">
@@ -94,7 +85,7 @@ export const Hero = () => {
           
           <div className="p-6">
             <div className="w-16 h-16 bg-art-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <ArrowRight className="h-8 w-8 text-art-primary" />
+              <FileText className="h-8 w-8 text-art-primary" />
             </div>
             <h3 className="text-xl font-semibold mb-2">{t('hero.feature3.title')}</h3>
             <p className="text-muted-foreground">
