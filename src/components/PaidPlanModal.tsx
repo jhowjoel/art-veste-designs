@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Check, Star, Download, Palette } from "lucide-react";
+import { Check, Star, Download, Package } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -93,17 +93,17 @@ const PaidPlanModal = ({ isOpen, onClose }: PaidPlanModalProps) => {
     {
       icon: <Download className="h-5 w-5 text-primary" />,
       title: "Downloads Ilimitados",
-      description: "Baixe quantas imagens quiser durante todo o mês"
+      description: "Baixe quantos modelos de caixas quiser durante todo o mês"
     },
     {
-      icon: <Palette className="h-5 w-5 text-primary" />,
-      title: "Ferramentas Avançadas",
-      description: "Acesso completo às ferramentas de vetorização e edição"
+      icon: <Package className="h-5 w-5 text-primary" />,
+      title: "Modelos Exclusivos",
+      description: "Acesso a modelos premium de caixas e embalagens"
     },
     {
       icon: <Star className="h-5 w-5 text-primary" />,
       title: "Qualidade Premium",
-      description: "Acesso a produtos exclusivos e de alta qualidade"
+      description: "Modelos profissionais prontos para produção"
     },
     {
       icon: <Check className="h-5 w-5 text-primary" />,
@@ -171,7 +171,7 @@ const PaidPlanModal = ({ isOpen, onClose }: PaidPlanModalProps) => {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl">
-            Plano Premium - EstampArt
+            Plano Premium - Presynter
           </DialogTitle>
         </DialogHeader>
         
@@ -206,19 +206,19 @@ const PaidPlanModal = ({ isOpen, onClose }: PaidPlanModalProps) => {
             <ul className="space-y-2 text-sm">
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-primary" />
-                Baixar imagens ilimitadas por 30 dias
+                Baixar modelos ilimitados de caixas por 30 dias
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-primary" />
-                Usar todas as ferramentas de vetorização avançadas
+                Acesso a modelos exclusivos e profissionais
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-primary" />
-                Converter qualquer imagem em vetor com qualidade profissional
+                Caixas de papelão, papel cartão e embalagens diversas
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-primary" />
-                Acesso a funcionalidades exclusivas de edição
+                Arquivos prontos para impressão e corte
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-primary" />
