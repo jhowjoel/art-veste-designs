@@ -34,48 +34,48 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <LanguageProvider>
-        <AuthProvider>
-          <SubscriptionProvider>
-            <CartProvider>
-            <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/catalog" element={<Catalog />} />
-              <Route path="/vector-subcategories" element={<VectorSubcategories />} />
-              <Route path="/product/:id" element={<Product />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/checkout" element={
-                <ProtectedRoute>
-                  <Checkout />
-                </ProtectedRoute>
-              } />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } />
-              <Route path="/thank-you" element={
-                <ProtectedRoute>
-                  <ThankYou />
-                </ProtectedRoute>
-              } />
-              <Route path="/payment-success" element={<PaymentSuccess />} />
-              <Route path="/payment-canceled" element={<PaymentCanceled />} />
-              <Route path="/payment-pending" element={<PaymentPending />} />
-              <Route path="/how-to-buy" element={<HowToBuy />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/contact" element={<Contact />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            </BrowserRouter>
-          </CartProvider>
-        </SubscriptionProvider>
-      </AuthProvider>
-    </LanguageProvider>
+      <BrowserRouter>
+        <LanguageProvider>
+          <AuthProvider>
+            <SubscriptionProvider>
+              <CartProvider>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/catalog" element={<Catalog />} />
+                  <Route path="/vector-subcategories" element={<VectorSubcategories />} />
+                  <Route path="/product/:id" element={<Product />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/checkout" element={
+                    <ProtectedRoute>
+                      <Checkout />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/profile" element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/thank-you" element={
+                    <ProtectedRoute>
+                      <ThankYou />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/payment-success" element={<PaymentSuccess />} />
+                  <Route path="/payment-canceled" element={<PaymentCanceled />} />
+                  <Route path="/payment-pending" element={<PaymentPending />} />
+                  <Route path="/how-to-buy" element={<HowToBuy />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/contact" element={<Contact />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </CartProvider>
+            </SubscriptionProvider>
+          </AuthProvider>
+        </LanguageProvider>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
