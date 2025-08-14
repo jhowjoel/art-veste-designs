@@ -63,15 +63,15 @@ export default {
 
   // Premium Plan
   'premium.title': 'Premium Plan - $4.99/month',
-  'premium.modalTitle': 'Premium Plan - EstampArt',
+  'premium.modalTitle': 'Premium Plan - Presynter',
   'premium.price': 'Only $4.99/month',
   'premium.features': 'What you get with Premium Plan:',
   'premium.feature1': 'Unlimited Downloads',
-  'premium.feature1.desc': 'Download as many images as you want throughout the month',
-  'premium.feature2': 'Advanced Tools',
-  'premium.feature2.desc': 'Complete access to vectorization and editing tools',
+  'premium.feature1.desc': 'Download as many files as you want throughout the month',
+  'premium.feature2': 'Exclusive Templates',
+  'premium.feature2.desc': 'Access to exclusive premium box templates',
   'premium.feature3': 'Premium Quality',
-  'premium.feature3.desc': 'Access to exclusive and high-quality products',
+  'premium.feature3.desc': 'Access to high-quality and high-resolution files',
   'premium.feature4': 'Priority Support',
   'premium.feature4.desc': 'Special assistance for premium subscribers',
   'premium.paymentMethod': 'Choose payment method:',
@@ -86,7 +86,7 @@ export default {
   'premium.loginRequired': 'You need to be logged in to subscribe to the plan',
 
   // Footer
-  'footer.description': 'Unique SVG designs for your creations. Professional quality with commercial use cleared.',
+  'footer.description': 'Digital files for cardboard and paperboard boxes. Ready-to-cut templates.',
   'footer.quickLinks': 'Quick Links',
   'footer.catalog': 'Catalog',
   'footer.login': 'Login',

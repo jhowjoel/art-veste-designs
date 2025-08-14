@@ -1,4 +1,4 @@
-import { Palette, Mail, Instagram, Facebook, Twitter } from "lucide-react";
+import { Package, Mail, Instagram, Facebook, Twitter } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
@@ -21,8 +21,8 @@ export const Footer = () => {
     description: "",
     price: "5.00",
     category: "",
-    file: null as File | null, // imagem de capa
-    images: [] as File[], // imagens do produto
+    file: null as File | null, // preview do produto
+    images: [] as File[], // arquivos do produto
   });
   // Novo estado para categorias
   const [categories, setCategories] = useState<any[]>([]);
@@ -106,18 +106,18 @@ export const Footer = () => {
     setError("");
     try {
       if (!form.name || !form.description || !form.price || !form.file || !categoryId) {
-        setError("Preencha todos os campos e selecione uma imagem de capa.");
+        setError("Preencha todos os campos e selecione um preview do produto.");
         setLoading(false);
         return;
       }
-      // Upload da imagem de capa
+      // Upload do preview do produto
       const extCapa = form.file.name.split('.').pop();
       const filePathCapa = `products/capa-${Date.now()}-${form.file.name}`;
       const { data: uploadCapa, error: uploadCapaError } = await supabase.storage.from("art-files").upload(filePathCapa, form.file);
       if (uploadCapaError) throw uploadCapaError;
       const { data: publicUrlCapa } = supabase.storage.from("art-files").getPublicUrl(filePathCapa);
       const capaUrl = publicUrlCapa.publicUrl;
-      // Upload das imagens do produto
+      // Upload dos arquivos do produto
       let imagesUrls: string[] = [];
       for (const img of form.images) {
         const ext = img.name.split('.').pop();
@@ -181,8 +181,8 @@ export const Footer = () => {
           {/* Logo e descrição */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <Palette className="h-8 w-8 text-art-primary" />
-              <span className="text-2xl font-bold font-heading">Art</span>
+              <Package className="h-8 w-8 text-art-primary" />
+              <span className="text-2xl font-bold font-heading">Presynter</span>
             </div>
             <p className="text-gray-300 mb-4 max-w-md">
               {t('footer.description')}
@@ -259,7 +259,7 @@ export const Footer = () => {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; 2024 Art. {t('footer.allRightsReserved')}</p>
+          <p>&copy; 2024 Presynter. {t('footer.allRightsReserved')}</p>
           {user?.email === "jota100clock@gmail.com" && (
             <button
               className="ml-4 px-4 py-2 bg-art-primary text-white rounded hover:bg-art-primary/80 transition-colors"
@@ -319,7 +319,7 @@ export const Footer = () => {
                     </select>
                   </div>
                   <div className="mb-4">
-                    <label className="block mb-1 font-semibold">Imagem de Capa <span className='text-xs text-art-primary'>(será a capa do produto)</span></label>
+                    <label className="block mb-1 font-semibold">Preview do Produto <span className='text-xs text-art-primary'>(será o preview principal)</span></label>
                     <input
                       className="w-full !text-white !bg-black"
                       type="file"
@@ -335,7 +335,7 @@ export const Footer = () => {
                     )}
                   </div>
                   <div className="mb-4">
-                    <label className="block mb-1 font-semibold">Imagens do Produto <span className='text-xs text-gray-400'>(serão as imagens do kit ou produto)</span></label>
+                    <label className="block mb-1 font-semibold">Arquivos do Produto <span className='text-xs text-gray-400'>(SVG, DXF, PDF etc.)</span></label>
                     <input
                       className="w-full !text-white !bg-black"
                       type="file"

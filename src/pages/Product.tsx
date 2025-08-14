@@ -222,7 +222,7 @@ const Product = () => {
         </Button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Imagem do produto */}
+          {/* Preview do produto */}
           <div className="space-y-4">
             <div className="aspect-square bg-white rounded-lg overflow-hidden border">
               <img
@@ -239,7 +239,7 @@ const Product = () => {
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Formato:</span>
-                  <span>SVG Vetorial</span>
+                  <span>Arquivo Digital (SVG, DXF, PDF)</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tamanho:</span>
@@ -251,7 +251,7 @@ const Product = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Licença:</span>
-                  <span>Uso Comercial</span>
+                  <span>Uso Comercial Permitido</span>
                 </div>
               </CardContent>
             </Card>
@@ -284,7 +284,7 @@ const Product = () => {
               </div>
 
               <p className="text-muted-foreground mb-6">
-                {product.description || "Design vetorial de alta qualidade, perfeito para estampas em camisetas, canecas, quadros e diversos produtos personalizados."}
+                {product.description || "Arquivo digital pronto para corte, ideal para criação de caixas de papelão, papel cartão e embalagens personalizadas."}
               </p>
             </div>
 
@@ -335,11 +335,11 @@ const Product = () => {
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-art-primary rounded-full" />
-                    Arquivo SVG vetorial em alta qualidade
+                    Arquivos para corte em alta qualidade
                   </li>
                   <li className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-art-primary rounded-full" />
-                    Arquivo PNG para visualização
+                    Arquivo PNG para pré-visualização
                   </li>
                   <li className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-art-primary rounded-full" />
